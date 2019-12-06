@@ -26,6 +26,7 @@ const (
 // Charger is able to provide current charging status and to enable/disabler charging
 type Charger interface {
 	Status() (ChargeStatus, error)
+	Enabled() (bool, error)
 	Enable(enable bool) error
 }
 

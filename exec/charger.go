@@ -29,6 +29,14 @@ func (m *charger) Status() (ulm.ChargeStatus, error) {
 
 	return ulm.ChargeStatus(s), nil
 }
+func (m *charger) Enabled() (bool, error) {
+	s, err := execWithStringResult(contextWithTimeout(m.timeout), m.status)
+	if err != nil {
+		return false, err
+	}
+
+	return truish(s), nil
+}
 
 func (m *charger) Enable(enable bool) error {
 	cmd, err := replaceFormatted(m.status, map[string]interface{}{

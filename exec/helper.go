@@ -11,8 +11,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/andig/ulm"
 	"github.com/kballard/go-shellquote"
 )
+
+func truish(s string) bool {
+	return s == "1" || strings.ToLower(s) == "true" || strings.ToLower(s) == "on"
+}
 
 var re = regexp.MustCompile("\\${(\\w+)(:([a-zA-Z0-9%.]+))?}")
 
@@ -22,7 +27,6 @@ func replaceFormatted(s string, kv map[string]interface{}) (string, error) {
 
 	for len(matches) > 0 {
 		for _, m := range matches {
-			log.Println(m)
 			k := m[1]
 			if v, ok := kv[k]; ok {
 				format := m[3]
@@ -54,6 +58,10 @@ func contextWithTimeout(timeout time.Duration) context.Context {
 }
 
 func execWithStringResult(ctx context.Context, script string) (string, error) {
+	verbose := ulm.LogEnabled()
+	if verbose {
+		log.Println("exec: " + script)
+	}
 	args, err := shellquote.Split(script)
 	if err != nil {
 		return "", err
@@ -63,6 +71,11 @@ func execWithStringResult(ctx context.Context, script string) (string, error) {
 	b, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", err
+	}
+
+	if verbose {
+		log.Println(strings.TrimRight(string(b), "\r\n"))
+		log.Println("---")
 	}
 
 	return strings.TrimSpace(string(b)), nil

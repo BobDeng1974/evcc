@@ -9,10 +9,9 @@ chargers:
   cmds:
     status: /bin/sh -c "echo A"
     enable: /bin/sh -c true
-    disable: /bin/sh -c false
     maxpower: /bin/sh -c false
 
-physics:
+loadpoints:
 - name: LoadPoint 1
   meter: Netzverknüpfungspunkt
   charger: Wallbe
