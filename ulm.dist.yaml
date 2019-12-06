@@ -1,0 +1,23 @@
+meters:
+- name: Netzverknüpfungspunkt
+  type: exec
+  cmd: /bin/sh -c foo:bar
+
+chargers:
+- name: Wallbe
+  type: exec
+  cmds:
+    status: /bin/sh -c "echo A"
+    enable: /bin/sh -c true
+    disable: /bin/sh -c false
+    maxpower: /bin/sh -c false
+
+physics:
+- name: LoadPoint 1
+  meter: Netzverknüpfungspunkt
+  charger: Wallbe
+  strategies:
+  - name: PV Ladung
+    type: pv
+  - name: Zielladung
+    type: targettime
