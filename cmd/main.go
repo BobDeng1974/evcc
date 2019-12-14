@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"math"
 	"time"
 
 	"github.com/andig/ulm"
@@ -110,7 +111,7 @@ func (lp *LoadPoint) ApplyStrategy() error {
 	}
 
 	if charger, ok := lp.charger.(ulm.ChargeController); ok {
-		maxPower := -power - 250 // apply margin
+		maxPower := math.Max(0, -power-250) // apply margin
 
 		if err := charger.MaxPower(maxPower); err != nil {
 			log.Printf("%s charge controller error: %v", lp.name, err)
