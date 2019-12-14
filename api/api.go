@@ -1,4 +1,4 @@
-package ulm
+package api
 
 // Strategy calculates desired power based on input parameters
 type Strategy interface {
@@ -33,4 +33,18 @@ type Charger interface {
 // ChargeController provides controlling of the charger's max allowed power
 type ChargeController interface {
 	MaxPower(power float64) error
+}
+
+type ChargeMode string
+
+const (
+	ModeNow   ChargeMode = "now"
+	ModeMinPV ChargeMode = "minpv"
+	ModePV    ChargeMode = "pv"
+)
+
+type LoadPoint interface {
+	Update()
+	SetChargeMode(mode ChargeMode) error
+	CurrentChargeMode() ChargeMode
 }

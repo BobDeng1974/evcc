@@ -1,4 +1,4 @@
-package ulm
+package core
 
 import (
 	"os"
