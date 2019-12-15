@@ -1,11 +1,14 @@
 package core
 
 import (
+	"log"
 	"os"
 	"strings"
 )
 
-type Logger interface {
+var Log *log.Logger = log.New(os.Stdout, "", log.LstdFlags)
+
+type logger interface {
 	Printf(format string, v ...interface{})
 }
 

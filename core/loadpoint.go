@@ -36,7 +36,7 @@ type LoadPoint struct {
 	MinCurrent float64
 	MaxCurrent float64
 	Phases     float64
-	Log        Logger
+	Log        logger
 }
 
 func (lp *LoadPoint) CurrentChargeMode() api.ChargeMode {
