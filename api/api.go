@@ -2,11 +2,6 @@ package api
 
 //go:generate mockgen -destination mock_api/api.go github.com/andig/ulm/api Charger,ChargeController,Meter
 
-// Strategy calculates desired power based on input parameters
-type Strategy interface {
-	DesiredPower() (float64, error)
-}
-
 // Meter is able to provide current power at metering point
 type Meter interface {
 	CurrentPower() (float64, error)
@@ -38,6 +33,7 @@ type ChargeController interface {
 	MaxCurrent(current int) error
 }
 
+// ChargeMode are charge modes modeled after OpenWB
 type ChargeMode string
 
 const (
@@ -46,6 +42,7 @@ const (
 	ModePV    ChargeMode = "pv"
 )
 
+// LoadPoint ties charger and meter together and contains the controller logic
 type LoadPoint interface {
 	Update()
 	CurrentChargeMode() ChargeMode

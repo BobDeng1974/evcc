@@ -27,7 +27,6 @@ type LoadPoint struct {
 	Mode       api.ChargeMode
 	GridMeter  api.Meter // UsageMeter api.Meter
 	Charger    api.Charger
-	Strategy   api.Strategy
 	MinCurrent int // PV mode: start current	Min+PV mode: min current
 	MaxCurrent int
 	Voltage    float64
