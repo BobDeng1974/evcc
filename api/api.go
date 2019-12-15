@@ -48,6 +48,6 @@ const (
 
 type LoadPoint interface {
 	Update()
-	SetChargeMode(mode ChargeMode) error
 	CurrentChargeMode() ChargeMode
+	ChargeMode(mode ChargeMode) error
 }

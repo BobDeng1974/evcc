@@ -88,7 +88,7 @@ func ChargeModeHandler(lp api.LoadPoint) http.HandlerFunc {
 			return
 		}
 
-		if err := lp.SetChargeMode(api.ChargeMode(mode)); err != nil {
+		if err := lp.ChargeMode(api.ChargeMode(mode)); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			res := errorModeJson{
 				Error: err,

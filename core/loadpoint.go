@@ -70,7 +70,7 @@ func (lp *LoadPoint) CurrentChargeMode() api.ChargeMode {
 	return lp.Mode
 }
 
-func (lp *LoadPoint) SetChargeMode(mode api.ChargeMode) error {
+func (lp *LoadPoint) ChargeMode(mode api.ChargeMode) error {
 	lp.Log.Printf("%s set charge mode: %s", lp.Name, string(mode))
 
 	// check if charger is controllable
