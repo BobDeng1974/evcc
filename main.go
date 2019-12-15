@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/andig/ulm/api"
@@ -23,8 +24,6 @@ type Route struct {
 	HandlerFunc http.HandlerFunc
 }
 
-var loadPoints []api.LoadPoint
-
 func main() {
 	m := &meter{}
 	c := &charger{}
@@ -37,9 +36,10 @@ func main() {
 		Phases:     2,
 		MinCurrent: 6,  // A
 		MaxCurrent: 16, // A
-		Debug:      core.LogEnabled(),
+		Log:        log.New(os.Stdout, "", log.LstdFlags),
 	}
-	loadPoints = append(loadPoints, lp)
+
+	loadPoints := []*core.LoadPoint{lp}
 
 	var routes = []Route{
 		Route{
@@ -92,8 +92,7 @@ func main() {
 
 	go func() {
 		for range time.Tick(time.Second) {
-			for i, lp := range loadPoints {
-				log.Printf("lp %d: update", i+1)
+			for _, lp := range loadPoints {
 				go lp.Update()
 			}
 		}

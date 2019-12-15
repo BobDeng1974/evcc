@@ -36,7 +36,7 @@ type LoadPoint struct {
 	MinCurrent float64
 	MaxCurrent float64
 	Phases     float64
-	Debug      bool
+	Log        Logger
 }
 
 func (lp *LoadPoint) CurrentChargeMode() api.ChargeMode {
@@ -44,9 +44,7 @@ func (lp *LoadPoint) CurrentChargeMode() api.ChargeMode {
 }
 
 func (lp *LoadPoint) SetChargeMode(mode api.ChargeMode) error {
-	if lp.Debug {
-		log.Printf("%s set charge mode: %s", lp.Name, string(mode))
-	}
+	lp.Log.Printf("%s set charge mode: %s", lp.Name, string(mode))
 
 	switch mode {
 	// both modes require GridMeter
@@ -71,9 +69,7 @@ func (lp *LoadPoint) Update() {
 		return
 	}
 
-	if lp.Debug {
-		log.Printf("%s charger status: %s", lp.Name, s)
-	}
+	lp.Log.Printf("%s charger status: %s", lp.Name, s)
 
 	// vehicle connected
 	if s == api.StatusC || s == api.StatusD {
@@ -83,9 +79,7 @@ func (lp *LoadPoint) Update() {
 			return
 		}
 
-		if lp.Debug {
-			log.Printf("%s charger enabled: %v", lp.Name, enabled)
-		}
+		lp.Log.Printf("%s charger enabled: %v", lp.Name, enabled)
 
 		if enabled {
 			if err := lp.ApplyStrategy(); err != nil {
@@ -109,9 +103,7 @@ func (lp *LoadPoint) ApplyStrategy() error {
 		}
 	}
 
-	if lp.Debug {
-		log.Printf("%s grid meter power: %.0f", lp.Name, gridpower)
-	}
+	lp.Log.Printf("%s grid meter power: %.0f", lp.Name, gridpower)
 
 	// negative gridpower means excess production
 	availablepower := math.Max(0, -gridpower)
@@ -123,9 +115,7 @@ func (lp *LoadPoint) ApplyStrategy() error {
 		maxPower = availablepower
 	}
 
-	if lp.Debug {
-		log.Printf("%s charge power: %.0f", lp.Name, availablepower)
-	}
+	lp.Log.Printf("%s charge power: %.0f", lp.Name, availablepower)
 
 	if charger, ok := lp.Charger.(api.ChargeController); ok {
 		if err := charger.MaxPower(maxPower); err != nil {
