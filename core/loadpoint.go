@@ -30,7 +30,6 @@ type LoadPoint struct {
 	Strategy   api.Strategy
 	MinCurrent int // PV mode: start current	Min+PV mode: min current
 	MaxCurrent int
-	MinPower   float64
 	Voltage    float64
 	Phases     float64
 	Log        logger
@@ -48,6 +47,23 @@ func NewLoadPoint(name string, charger api.Charger, meter api.Meter) *LoadPoint 
 		Charger:    charger,
 		GridMeter:  meter,
 	}
+}
+
+// setTargetCurrent guards setting current against changing to identical value
+// and violating MaxCurrent
+func (lp *LoadPoint) setTargetCurrent(chargeCurrent, targetChargeCurrent int) error {
+	if targetChargeCurrent > lp.MaxCurrent {
+		targetChargeCurrent = lp.MaxCurrent
+		lp.Log.Printf("%s limit max charge current: %dA", lp.Name, targetChargeCurrent)
+	}
+
+	if chargeCurrent != targetChargeCurrent {
+		if err := lp.Charger.(api.ChargeController).MaxCurrent(targetChargeCurrent); err != nil {
+			return fmt.Errorf("charge controller error: %v", err)
+		}
+	}
+
+	return nil
 }
 
 func (lp *LoadPoint) CurrentChargeMode() api.ChargeMode {
@@ -117,6 +133,17 @@ func (lp *LoadPoint) Update() {
 		lp.Log.Printf("%s error: %v", lp.Name, err)
 		return
 	}
+
+	// enable charging if not already
+	// on, err := lp.Charger.Enabled()
+	// if err != nil {
+	// 	return err
+	// }
+	// if !on {
+	// 	if err := lp.Charger.Enable(true); err != nil {
+	// 		return err
+	// 	}
+	// }
 }
 
 func (lp *LoadPoint) ApplyModeNow() error {
@@ -146,32 +173,6 @@ func (lp *LoadPoint) ApplyModeNow() error {
 	if err := lp.setTargetCurrent(chargeCurrent, targetChargeCurrent); err != nil {
 		log.Println("FOO")
 		return err
-	}
-
-	// enable charging if not already
-	// on, err := lp.Charger.Enabled()
-	// if err != nil {
-	// 	return err
-	// }
-	// if !on {
-	// 	if err := lp.Charger.Enable(true); err != nil {
-	// 		return err
-	// 	}
-	// }
-
-	return nil
-}
-
-func (lp *LoadPoint) setTargetCurrent(chargeCurrent, targetChargeCurrent int) error {
-	if targetChargeCurrent > lp.MaxCurrent {
-		targetChargeCurrent = lp.MaxCurrent
-		lp.Log.Printf("%s limit max charge current: %dA", lp.Name, targetChargeCurrent)
-	}
-
-	if chargeCurrent != targetChargeCurrent {
-		if err := lp.Charger.(api.ChargeController).MaxCurrent(targetChargeCurrent); err != nil {
-			return fmt.Errorf("charge controller error: %v", err)
-		}
 	}
 
 	return nil
@@ -206,15 +207,10 @@ func (lp *LoadPoint) ApplyModePV() error {
 	maxChargePower := -haNetPower
 	lp.Log.Printf("%s max charge power: %.0fW", lp.Name, maxChargePower)
 
-	// switch lp.Mode {
-	// case api.ModeMinPV:
-	// 	maxChargePower = math.Max(250, maxChargePower)
-	// 	lp.Log.Printf("%s charge power (min+pv): %.0fW", lp.Name, maxChargePower)
-	// }
-
 	// get max charge current
 	f := PowerToCurrent(maxChargePower, lp.Voltage, lp.Phases)
 	targetChargeCurrent := int(math.Max(0, f))
+	lp.Log.Printf("%s max charge current: %dA", lp.Name, targetChargeCurrent)
 
 	if targetChargeCurrent < lp.MinCurrent {
 		switch lp.Mode {

@@ -5,7 +5,6 @@ import (
 
 	"github.com/andig/ulm/api"
 	"github.com/andig/ulm/api/mock_api"
-	// "github.com/andig/ulm/core"
 	"github.com/golang/mock/gomock"
 )
 
@@ -61,7 +60,7 @@ func mockedLP(ctrl *gomock.Controller, tc testCase) *LoadPoint {
 func TestNewLoadPoint(t *testing.T) {
 	var c api.Charger
 	var m api.Meter
-	var lp api.LoadPoint = NewLoadPoint("foo", c, m)
+	var lp api.LoadPoint = NewLoadPoint("lp1", c, m)
 	_ = lp
 }
 
@@ -98,8 +97,27 @@ func TestEVConnectedButDisabled(t *testing.T) {
 
 func TestEVConnectedAndEnabledNowMode(t *testing.T) {
 	cases := []testCase{
+		testCase{api.ModeNow, 0, 0, 0, 0.0, 16},
 		testCase{api.ModeNow, 0, 32, 0, 0.0, 32},
 		testCase{api.ModeNow, 16, 32, 0, 0.0, 32},
+	}
+
+	for _, c := range cases {
+		ctrl := gomock.NewController(t)
+
+		lp := mockedLP(ctrl, c)
+		lp.Update()
+
+		ctrl.Finish()
+	}
+}
+
+func TestEVConnectedAndEnabledPMinVMode(t *testing.T) {
+	cases := []testCase{
+		testCase{api.ModeMinPV, 0, 0, 5, 0.0, nil},
+		testCase{api.ModeMinPV, 0, 0, 10, 1150.0, 5},
+		testCase{api.ModeMinPV, 0, 0, 5, -1150.0, 10},
+		testCase{api.ModeMinPV, 14, 0, 5, -1150.0, 14}, // 14A > 10A
 	}
 
 	for _, c := range cases {
@@ -117,7 +135,7 @@ func TestEVConnectedAndEnabledPVMode(t *testing.T) {
 		testCase{api.ModePV, 0, 0, 5, 0.0, nil},
 		testCase{api.ModePV, 0, 0, 10, 1150.0, 5},
 		testCase{api.ModePV, 0, 0, 5, -1150.0, 10},
-		testCase{api.ModePV, 20, 0, 5, -1150.0, 0},
+		testCase{api.ModePV, 14, 0, 5, -1150.0, 0}, // 14A > 10A
 	}
 
 	for _, c := range cases {
