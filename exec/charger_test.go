@@ -3,11 +3,11 @@ package exec
 import (
 	"testing"
 
-	"github.com/andig/ulm"
+	"github.com/andig/ulm/api"
 )
 
 func TestNewCharger(t *testing.T) {
-	var m ulm.Charger = NewCharger("", "", 0)
+	var m api.Charger = NewCharger("", "", "", 0)
 	_ = m
 }
 

@@ -3,11 +3,11 @@ package exec
 import (
 	"testing"
 
-	"github.com/andig/ulm"
+	"github.com/andig/ulm/api"
 )
 
 func TestNewMeter(t *testing.T) {
-	var m ulm.Meter = NewMeter("", 0)
+	var m api.Meter = NewMeter("", 0)
 	_ = m
 }
 

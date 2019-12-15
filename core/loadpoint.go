@@ -9,6 +9,23 @@ import (
 	"github.com/andig/ulm/api"
 )
 
+// Loadpoint is responsible for controlling charge depending on
+// SoC needs and power availability.
+//
+// Power availability is goverened by this equation (positiv sign signals
+// consumption, negative sign is grid production):
+//
+//		GridPower = Consumption + Production
+//
+// where
+//
+//		Consumption = RemainingConsumption + ChargeConsumption
+//		Household = RemainingConsumption + Production
+//
+// giving
+//
+// 		GridPower = RemainingConsumption + ChargeConsumption + Production
+//
 type LoadPoint struct {
 	Name       string
 	Mode       api.ChargeMode

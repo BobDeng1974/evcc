@@ -17,39 +17,6 @@ const (
 	url = "127.1:7070"
 )
 
-type meter struct{}
-
-func (m *meter) CurrentPower() (float64, error) {
-	return 500, nil
-}
-
-type charger struct{}
-
-func (c *charger) Enable(charge bool) error {
-	return nil
-}
-
-func (c *charger) Status() (api.ChargeStatus, error) {
-	return api.StatusC, nil
-}
-
-func (c *charger) Enabled() (bool, error) {
-	return true, nil
-}
-
-func (c *charger) MaxPower(max float64) error {
-	return nil
-}
-
-func control(c api.Charger) {
-	if c, ok := c.(api.ChargeController); ok {
-		log.Println("Maxpower")
-		c.MaxPower(1)
-	} else {
-		log.Println("no Maxpower")
-	}
-}
-
 type Route struct {
 	Methods     []string
 	Pattern     string
@@ -61,8 +28,6 @@ var loadPoints []api.LoadPoint
 func main() {
 	m := &meter{}
 	c := &charger{}
-	// c.MaxPower(5)
-	c.Enable(true)
 
 	lp := &core.LoadPoint{
 		Name:       "lp1",

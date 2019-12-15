@@ -3,7 +3,7 @@ package exec
 import (
 	"time"
 
-	"github.com/andig/ulm"
+	"github.com/andig/ulm/api"
 )
 
 type meter struct {
@@ -12,7 +12,7 @@ type meter struct {
 }
 
 // NewMeter creates a new exec meter
-func NewMeter(script string, timeout time.Duration) ulm.Meter {
+func NewMeter(script string, timeout time.Duration) api.Meter {
 	return &meter{
 		script:  script,
 		timeout: timeout,

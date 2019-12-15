@@ -28,6 +28,7 @@ type Charger interface {
 	Status() (ChargeStatus, error)
 	Enabled() (bool, error)
 	Enable(enable bool) error
+	ActualCurrent() (float64, error)
 }
 
 // ChargeController provides controlling of the charger's max allowed power

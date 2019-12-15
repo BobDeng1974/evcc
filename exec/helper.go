@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/andig/ulm"
+	"github.com/andig/ulm/core"
 	"github.com/kballard/go-shellquote"
 )
 
@@ -58,7 +58,7 @@ func contextWithTimeout(timeout time.Duration) context.Context {
 }
 
 func execWithStringResult(ctx context.Context, script string) (string, error) {
-	verbose := ulm.LogEnabled()
+	verbose := core.LogEnabled()
 	if verbose {
 		log.Println("exec: " + script)
 	}

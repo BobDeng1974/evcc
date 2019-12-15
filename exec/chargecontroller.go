@@ -3,7 +3,7 @@ package exec
 import (
 	"time"
 
-	"github.com/andig/ulm"
+	"github.com/andig/ulm/api"
 )
 
 type chargecontroller struct {
@@ -12,7 +12,7 @@ type chargecontroller struct {
 }
 
 // NewChargeController creates a new exec chargecontroller
-func NewChargeController(cmd string, timeout time.Duration) ulm.ChargeController {
+func NewChargeController(cmd string, timeout time.Duration) api.ChargeController {
 	return &chargecontroller{
 		cmd:     cmd,
 		timeout: timeout,
