@@ -19,9 +19,9 @@ func NewChargeController(cmd string, timeout time.Duration) api.ChargeController
 	}
 }
 
-func (m *chargecontroller) MaxPower(power float64) error {
+func (m *chargecontroller) MaxCurrent(current int) error {
 	cmd, err := replaceFormatted(m.cmd, map[string]interface{}{
-		"power": power,
+		"current": current,
 	})
 	if err != nil {
 		return err

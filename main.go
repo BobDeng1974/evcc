@@ -24,6 +24,14 @@ type Route struct {
 	HandlerFunc http.HandlerFunc
 }
 
+var loadPoints []*core.LoadPoint
+
+func updateLoadPoints() {
+	for _, lp := range loadPoints {
+		go lp.Update()
+	}
+}
+
 func main() {
 	m := &meter{}
 	c := &charger{}
@@ -34,12 +42,13 @@ func main() {
 		GridMeter:  m,
 		Charger:    c,
 		Phases:     2,
-		MinCurrent: 6,  // A
-		MaxCurrent: 16, // A
+		Voltage:    230, // V
+		MinCurrent: 5,   // A
+		MaxCurrent: 16,  // A
 		Log:        log.New(os.Stdout, "", log.LstdFlags),
 	}
 
-	loadPoints := []*core.LoadPoint{lp}
+	loadPoints = append(loadPoints, lp)
 
 	var routes = []Route{
 		Route{
@@ -91,10 +100,10 @@ func main() {
 	srv.SetKeepAlivesEnabled(true)
 
 	go func() {
-		for range time.Tick(time.Second) {
-			for _, lp := range loadPoints {
-				go lp.Update()
-			}
+		updateLoadPoints()
+		for range time.Tick(5 * time.Second) {
+			core.Log.Printf("---")
+			updateLoadPoints()
 		}
 	}()
 

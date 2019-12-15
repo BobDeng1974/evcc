@@ -32,8 +32,9 @@ func (m *charger) Status() (api.ChargeStatus, error) {
 	return api.ChargeStatus(s), nil
 }
 
-func (m *charger) ActualCurrent() (float64, error) {
-	return execWithFloatResult(contextWithTimeout(m.timeout), m.current)
+func (m *charger) ActualCurrent() (int, error) {
+	f, err := execWithFloatResult(contextWithTimeout(m.timeout), m.current)
+	return int(f), err
 }
 
 func (m *charger) Enabled() (bool, error) {
