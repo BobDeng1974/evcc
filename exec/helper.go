@@ -4,14 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/andig/ulm/core"
 	"github.com/kballard/go-shellquote"
 )
 
@@ -58,13 +56,16 @@ func contextWithTimeout(timeout time.Duration) context.Context {
 }
 
 func execWithStringResult(ctx context.Context, script string) (string, error) {
-	verbose := core.LogEnabled()
-	if verbose {
-		log.Println("exec: " + script)
-	}
+	Logger.Println("exec script: " + script)
+
 	args, err := shellquote.Split(script)
 	if err != nil {
 		return "", err
+	}
+	// Logger.Println(strings.Join(args, ","))
+
+	if len(args) < 1 {
+		return "", errors.New("exec: missing script")
 	}
 
 	cmd := exec.CommandContext(ctx, args[0], args[1:]...)
@@ -72,11 +73,7 @@ func execWithStringResult(ctx context.Context, script string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
-	if verbose {
-		log.Println(strings.TrimRight(string(b), "\r\n"))
-		log.Println("---")
-	}
+	Logger.Println("exec result: " + strings.TrimSpace(string(b)))
 
 	return strings.TrimSpace(string(b)), nil
 }

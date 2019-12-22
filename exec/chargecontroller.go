@@ -7,20 +7,20 @@ import (
 )
 
 type chargecontroller struct {
-	cmd     string
-	timeout time.Duration
+	maxCurrentCmd string
+	timeout       time.Duration
 }
 
 // NewChargeController creates a new exec chargecontroller
-func NewChargeController(cmd string, timeout time.Duration) api.ChargeController {
+func NewChargeController(maxCurrent string, timeout time.Duration) api.ChargeController {
 	return &chargecontroller{
-		cmd:     cmd,
-		timeout: timeout,
+		maxCurrentCmd: maxCurrent,
+		timeout:       timeout,
 	}
 }
 
 func (m *chargecontroller) MaxCurrent(current int) error {
-	cmd, err := replaceFormatted(m.cmd, map[string]interface{}{
+	cmd, err := replaceFormatted(m.maxCurrentCmd, map[string]interface{}{
 		"current": current,
 	})
 	if err != nil {

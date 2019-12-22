@@ -13,7 +13,7 @@ func TestNewChargeController(t *testing.T) {
 
 func TestChargeControllerFail(t *testing.T) {
 	m := &chargecontroller{
-		cmd: "/bin/bash -c false",
+		maxCurrentCmd: "/bin/bash -c false",
 	}
 
 	if err := m.MaxCurrent(1); err == nil {

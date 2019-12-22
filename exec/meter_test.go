@@ -13,7 +13,7 @@ func TestNewMeter(t *testing.T) {
 
 func TestOutErr(t *testing.T) {
 	m := &meter{
-		script: "/bin/bash -c \"echo -n 1; echo 1>&2 2\"",
+		currentPowerCmd: "/bin/bash -c \"echo -n 1; echo 1>&2 2\"",
 	}
 
 	if p, err := m.CurrentPower(); p != 12 || err != nil {
@@ -22,7 +22,7 @@ func TestOutErr(t *testing.T) {
 }
 func TestMeterFail(t *testing.T) {
 	m := &meter{
-		script: "/bin/bash -c false",
+		currentPowerCmd: "/bin/bash -c false",
 	}
 
 	if _, err := m.CurrentPower(); err == nil {

@@ -7,24 +7,26 @@ import (
 )
 
 type charger struct {
-	status  string
-	current string
-	enable  string
-	timeout time.Duration
+	statusCmd  string
+	currentCmd string
+	enabledCmd string
+	enableCmd  string
+	timeout    time.Duration
 }
 
 // NewCharger creates a new exec charger
-func NewCharger(status, current, enable string, timeout time.Duration) api.Charger {
+func NewCharger(statusCmd, currentCmd, enabledCmd, enableCmd string, timeout time.Duration) api.Charger {
 	return &charger{
-		status:  status,
-		current: current,
-		enable:  enable,
-		timeout: timeout,
+		statusCmd:  statusCmd,
+		currentCmd: currentCmd,
+		enabledCmd: enabledCmd,
+		enableCmd:  enableCmd,
+		timeout:    timeout,
 	}
 }
 
 func (m *charger) Status() (api.ChargeStatus, error) {
-	s, err := execWithStringResult(contextWithTimeout(m.timeout), m.status)
+	s, err := execWithStringResult(contextWithTimeout(m.timeout), m.statusCmd)
 	if err != nil {
 		return api.StatusNone, err
 	}
@@ -33,12 +35,12 @@ func (m *charger) Status() (api.ChargeStatus, error) {
 }
 
 func (m *charger) ActualCurrent() (int, error) {
-	f, err := execWithFloatResult(contextWithTimeout(m.timeout), m.current)
+	f, err := execWithFloatResult(contextWithTimeout(m.timeout), m.currentCmd)
 	return int(f), err
 }
 
 func (m *charger) Enabled() (bool, error) {
-	s, err := execWithStringResult(contextWithTimeout(m.timeout), m.status)
+	s, err := execWithStringResult(contextWithTimeout(m.timeout), m.enabledCmd)
 	if err != nil {
 		return false, err
 	}
@@ -47,7 +49,7 @@ func (m *charger) Enabled() (bool, error) {
 }
 
 func (m *charger) Enable(enable bool) error {
-	cmd, err := replaceFormatted(m.status, map[string]interface{}{
+	cmd, err := replaceFormatted(m.enableCmd, map[string]interface{}{
 		"enable": enable,
 	})
 	if err != nil {

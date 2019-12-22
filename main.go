@@ -4,10 +4,12 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/andig/ulm/api"
 	"github.com/andig/ulm/core"
+	"github.com/andig/ulm/exec"
 	"github.com/andig/ulm/server"
 
 	"github.com/gorilla/handlers"
@@ -15,13 +17,19 @@ import (
 )
 
 const (
-	url = "127.1:7070"
+	url     = "127.1:7070"
+	timeout = 1 * time.Second
 )
 
-type Route struct {
+type route struct {
 	Methods     []string
 	Pattern     string
 	HandlerFunc http.HandlerFunc
+}
+
+type charger struct {
+	api.Charger
+	api.ChargeController
 }
 
 var loadPoints []*core.LoadPoint
@@ -32,36 +40,58 @@ func updateLoadPoints() {
 	}
 }
 
+func logEnabled() bool {
+	env := strings.TrimSpace(os.Getenv("ULM_DEBUG"))
+	return env != "" && env != "0"
+}
+
 func main() {
-	m := &meter{}
-	c := &charger{}
+	if true || logEnabled() {
+		logger := log.New(os.Stdout, "", log.LstdFlags)
+		core.Logger = logger
+		exec.Logger = logger
+	}
+
+	m := exec.NewMeter("/bin/bash -c 'echo $((RANDOM % 1000))'", timeout)
+	c := &charger{
+		exec.NewCharger(
+			"/bin/bash -c 'echo C'",
+			"/bin/bash -c 'echo $((RANDOM % 32))'",
+			"/bin/bash -c 'echo true'",
+			"/bin/bash -c 'echo true'",
+			timeout,
+		),
+		exec.NewChargeController(
+			"/bin/bash -c 'echo $((RANDOM % 1000))'",
+			timeout,
+		),
+	}
 
 	lp := &core.LoadPoint{
 		Name:       "lp1",
-		Mode:       api.ModeNow,
+		Mode:       api.ModePV,
 		GridMeter:  m,
 		Charger:    c,
 		Phases:     2,
 		Voltage:    230, // V
 		MinCurrent: 5,   // A
 		MaxCurrent: 16,  // A
-		Log:        log.New(os.Stdout, "", log.LstdFlags),
 	}
 
 	loadPoints = append(loadPoints, lp)
 
-	var routes = []Route{
-		Route{
+	var routes = []route{
+		route{
 			[]string{"GET"},
 			"/modes",
 			server.AllChargeModesHandler(),
 		},
-		Route{
+		route{
 			[]string{"GET"},
 			"/mode",
 			server.CurrentChargeModeHandler(lp),
 		},
-		Route{
+		route{
 			[]string{"PUT", "POST"},
 			"/mode/{mode:[a-z]+}",
 			server.ChargeModeHandler(lp),
@@ -102,7 +132,7 @@ func main() {
 	go func() {
 		updateLoadPoints()
 		for range time.Tick(5 * time.Second) {
-			core.Log.Printf("---")
+			core.Logger.Printf("---")
 			updateLoadPoints()
 		}
 	}()
