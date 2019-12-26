@@ -15,8 +15,8 @@ type testCharger struct {
 
 type testCase struct {
 	Mode                   api.ChargeMode
-	MinCurrent, MaxCurrent int
-	ActualCurrent          int
+	MinCurrent, MaxCurrent int64
+	ActualCurrent          int64
 	CurrentPower           float64
 	ExpectedCurrent        interface{}
 }
@@ -62,6 +62,35 @@ func TestNewLoadPoint(t *testing.T) {
 	var m api.Meter
 	var lp api.LoadPoint = NewLoadPoint("lp1", c, m)
 	_ = lp
+}
+
+func TestChargerEnableNoChange(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	c := mock_api.NewMockCharger(ctrl)
+	c.EXPECT().
+		Enabled().
+		Return(false, nil)
+
+	lp := NewLoadPoint("lp1", c, nil)
+	lp.chargerEnable(false)
+}
+
+func TestChargerEnableChange(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	c := mock_api.NewMockCharger(ctrl)
+	c.EXPECT().
+		Enabled().
+		Return(false, nil)
+	c.EXPECT().
+		Enable(true).
+		Return(nil)
+
+	lp := NewLoadPoint("lp1", c, nil)
+	lp.chargerEnable(true)
 }
 
 func TestEVNotConnected(t *testing.T) {

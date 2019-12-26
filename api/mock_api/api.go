@@ -34,10 +34,10 @@ func (m *MockCharger) EXPECT() *MockChargerMockRecorder {
 }
 
 // ActualCurrent mocks base method
-func (m *MockCharger) ActualCurrent() (int, error) {
+func (m *MockCharger) ActualCurrent() (int64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ActualCurrent")
-	ret0, _ := ret[0].(int)
+	ret0, _ := ret[0].(int64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -116,7 +116,7 @@ func (m *MockChargeController) EXPECT() *MockChargeControllerMockRecorder {
 }
 
 // MaxCurrent mocks base method
-func (m *MockChargeController) MaxCurrent(arg0 int) error {
+func (m *MockChargeController) MaxCurrent(arg0 int64) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "MaxCurrent", arg0)
 	ret0, _ := ret[0].(error)

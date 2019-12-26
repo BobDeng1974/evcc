@@ -25,18 +25,19 @@ type Charger interface {
 	Status() (ChargeStatus, error)
 	Enabled() (bool, error)
 	Enable(enable bool) error
-	ActualCurrent() (int, error)
+	ActualCurrent() (int64, error)
 }
 
 // ChargeController provides controlling of the charger's max allowed power
 type ChargeController interface {
-	MaxCurrent(current int) error
+	MaxCurrent(current int64) error
 }
 
 // ChargeMode are charge modes modeled after OpenWB
 type ChargeMode string
 
 const (
+	ModeOff   ChargeMode = "off"
 	ModeNow   ChargeMode = "now"
 	ModeMinPV ChargeMode = "minpv"
 	ModePV    ChargeMode = "pv"

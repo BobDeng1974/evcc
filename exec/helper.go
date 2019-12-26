@@ -19,25 +19,28 @@ func truish(s string) bool {
 
 var re = regexp.MustCompile("\\${(\\w+)(:([a-zA-Z0-9%.]+))?}")
 
-// TODO replace multiple
+// replaceFormatted replaces all occurrances of ${key} with val from the kv map.
+// All keys of kv must exist inside the string to apply replacements to
 func replaceFormatted(s string, kv map[string]interface{}) (string, error) {
 	matches := re.FindAllStringSubmatch(s, -1)
 
 	for len(matches) > 0 {
 		for _, m := range matches {
-			k := m[1]
-			if v, ok := kv[k]; ok {
-				format := m[3]
-				if format != "" {
-					v = fmt.Sprintf(format, v)
-				}
-
-				// update string
-				lit := m[0]
-				s = strings.ReplaceAll(s, lit, fmt.Sprintf("%v", v))
-			} else {
+			key := m[1]
+			val, ok := kv[key]
+			if !ok {
 				return "", errors.New("could not find match for " + m[0])
 			}
+
+			// apply format
+			format := m[3]
+			if format != "" {
+				val = fmt.Sprintf(format, val)
+			}
+
+			// update string
+			literalMatch := m[0]
+			s = strings.ReplaceAll(s, literalMatch, fmt.Sprintf("%v", val))
 		}
 
 		// update matches
@@ -62,7 +65,6 @@ func execWithStringResult(ctx context.Context, script string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// Logger.Println(strings.Join(args, ","))
 
 	if len(args) < 1 {
 		return "", errors.New("exec: missing script")

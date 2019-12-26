@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -10,6 +12,7 @@ import (
 	"github.com/andig/ulm/api"
 	"github.com/andig/ulm/core"
 	"github.com/andig/ulm/exec"
+	"github.com/andig/ulm/provider"
 	"github.com/andig/ulm/server"
 
 	"github.com/gorilla/handlers"
@@ -17,8 +20,9 @@ import (
 )
 
 const (
-	url     = "127.1:7070"
-	timeout = 1 * time.Second
+	url        = "127.1:7070"
+	liveAssets = false
+	timeout    = 1 * time.Second
 )
 
 type route struct {
@@ -43,6 +47,11 @@ func updateLoadPoints() {
 func logEnabled() bool {
 	env := strings.TrimSpace(os.Getenv("ULM_DEBUG"))
 	return env != "" && env != "0"
+}
+
+func clientID() string {
+	pid := os.Getpid()
+	return fmt.Sprintf("ulm-%d", pid)
 }
 
 func main() {
@@ -83,11 +92,6 @@ func main() {
 	var routes = []route{
 		route{
 			[]string{"GET"},
-			"/modes",
-			server.AllChargeModesHandler(),
-		},
-		route{
-			[]string{"GET"},
 			"/mode",
 			server.CurrentChargeModeHandler(lp),
 		},
@@ -101,13 +105,13 @@ func main() {
 	router := mux.NewRouter().StrictSlash(true)
 
 	// static
-	// router.HandleFunc("/", h.mkIndexHandler())
+	router.HandleFunc("/", server.IndexHandler(liveAssets))
 
 	// individual handlers per folder
-	// for _, folder := range []string{"js", "css"} {
-	// 	prefix := fmt.Sprintf("/%s/", folder)
-	// 	router.PathPrefix(prefix).Handler(http.StripPrefix(prefix, http.FileServer(_escDir(devAssets, prefix))))
-	// }
+	for _, folder := range []string{"js", "css", "webfonts"} {
+		prefix := fmt.Sprintf("/%s/", folder)
+		router.PathPrefix(prefix).Handler(http.StripPrefix(prefix, http.FileServer(server.Dir(liveAssets, prefix))))
+	}
 
 	// api
 	api := router.PathPrefix("/api").Subrouter()
@@ -119,7 +123,15 @@ func main() {
 			Handler(server.RouteLogger(r.HandlerFunc))
 	}
 
-	srv := http.Server{
+	// websocket
+	hub := server.NewSocketHub()
+	router.HandleFunc("/ws", server.SocketHandler(hub))
+
+	// start broadcasting values
+	socketChan := make(chan server.SocketValue)
+	go hub.Run(socketChan)
+
+	srv := &http.Server{
 		Addr:         url,
 		Handler:      handlers.CompressHandler(router),
 		ReadTimeout:  5 * time.Second,
@@ -128,6 +140,21 @@ func main() {
 		// ErrorLog: log.New(server.DebugLogger{}, "", 0),
 	}
 	srv.SetKeepAlivesEnabled(true)
+
+	mq := provider.NewMqttClient("nas.fritz.box:1883", "", "", clientID(), true, 1)
+
+	observer := server.NewObserver(socketChan)
+	observer.Observe("gridPower", mq.FloatValue("mbmd/sdm1-1/Power"))
+	observer.Observe("pvPower", mq.FloatValue("mbmd/sdm1-2/Power"))
+
+	go func() {
+		for range time.Tick(time.Second) {
+			ctx, cancel := context.WithTimeout(context.Background(), timeout)
+			defer cancel()
+
+			observer.Update(ctx)
+		}
+	}()
 
 	go func() {
 		updateLoadPoints()

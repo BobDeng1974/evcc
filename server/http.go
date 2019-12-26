@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -13,6 +14,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
+//go:generate esc -o assets.go -pkg server -modtime 1566640112 -prefix ../assets ../assets
+
 type errorModeJson struct {
 	Error error `json:"error"`
 }
@@ -21,11 +24,29 @@ type chargeModeJson struct {
 	Mode string `json:"mode"`
 }
 
+func IndexHandler(liveAssets bool) http.HandlerFunc {
+	template, err := FSString(liveAssets, "/index.html")
+	if err != nil {
+		log.Fatal("httpd: failed to load embedded template: " + err.Error())
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+
+		_, err := fmt.Fprint(w, template)
+		if err != nil {
+			log.Println("httpd: failed to render main page: ", err.Error())
+		}
+	})
+}
+
 // JsonHandler is a middleware that decorates responses with JSON and CORS headers
 func JsonHandler(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+		// w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT")
 		h.ServeHTTP(w, r)
 	})
 }
@@ -55,13 +76,10 @@ func (d DebugLogger) Write(p []byte) (n int, err error) {
 	return os.Stderr.Write(p)
 }
 
-func AllChargeModesHandler() http.HandlerFunc {
+// SocketHandler attaches websocket handler to uri
+func SocketHandler(hub *SocketHub) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		res := []string{"now", "pv", "minpv"}
-		w.WriteHeader(http.StatusOK)
-		if err := json.NewEncoder(w).Encode(res); err != nil {
-			log.Printf("httpd: failed to encode JSON: %s", err.Error())
-		}
+		ServeWebsocket(hub, w, r)
 	}
 }
 

@@ -19,7 +19,7 @@ func NewChargeController(maxCurrent string, timeout time.Duration) api.ChargeCon
 	}
 }
 
-func (m *chargecontroller) MaxCurrent(current int) error {
+func (m *chargecontroller) MaxCurrent(current int64) error {
 	cmd, err := replaceFormatted(m.maxCurrentCmd, map[string]interface{}{
 		"current": current,
 	})

@@ -26,8 +26,8 @@ type LoadPoint struct {
 	Mode       api.ChargeMode
 	GridMeter  api.Meter // UsageMeter api.Meter
 	Charger    api.Charger
-	MinCurrent int // PV mode: start current	Min+PV mode: min current
-	MaxCurrent int
+	MinCurrent int64 // PV mode: start current	Min+PV mode: min current
+	MaxCurrent int64
 	Voltage    float64
 	Phases     float64
 }
@@ -47,16 +47,32 @@ func NewLoadPoint(name string, charger api.Charger, meter api.Meter) *LoadPoint 
 
 // setTargetCurrent guards setting current against changing to identical value
 // and violating MaxCurrent
-func (lp *LoadPoint) setTargetCurrent(chargeCurrent, targetChargeCurrent int) error {
+func (lp *LoadPoint) setTargetCurrent(chargeCurrent, targetChargeCurrent int64) error {
 	if targetChargeCurrent > lp.MaxCurrent {
 		targetChargeCurrent = lp.MaxCurrent
-		Logger.Printf("%s limit max charge current: %dA", lp.Name, targetChargeCurrent)
+		Logger.Printf("%s limit charge current: %dA", lp.Name, targetChargeCurrent)
 	}
 
 	if chargeCurrent != targetChargeCurrent {
 		if err := lp.Charger.(api.ChargeController).MaxCurrent(targetChargeCurrent); err != nil {
 			return fmt.Errorf("charge controller error: %v", err)
 		}
+	}
+
+	return nil
+}
+
+// chargerEnable switches charger on/off if status
+func (lp *LoadPoint) chargerEnable(enable bool) error {
+	// get enabled state
+	enabled, err := lp.Charger.Enabled()
+	if err != nil {
+		return err
+	}
+
+	// state change required?
+	if enable != enabled {
+		return lp.Charger.Enable(enable)
 	}
 
 	return nil
@@ -72,11 +88,21 @@ func (lp *LoadPoint) ChargeMode(mode api.ChargeMode) error {
 	// check if charger is controllable
 	_, chargerControllable := lp.Charger.(api.ChargeController)
 
+	// disable charger if enabled
+	if mode == api.ModeOff {
+		return lp.chargerEnable(false)
+	}
+
 	// both modes require GridMeter
 	if mode == api.ModeMinPV || mode == api.ModePV {
 		if lp.GridMeter == nil || !chargerControllable {
 			return errors.New("invalid charge mode: " + string(mode))
 		}
+	}
+
+	// enable charger if disabled
+	if err := lp.chargerEnable(true); err != nil {
+		return err
 	}
 
 	lp.Mode = mode
@@ -129,17 +155,6 @@ func (lp *LoadPoint) Update() {
 		Logger.Printf("%s error: %v", lp.Name, err)
 		return
 	}
-
-	// enable charging if not already
-	// on, err := lp.Charger.Enabled()
-	// if err != nil {
-	// 	return err
-	// }
-	// if !on {
-	// 	if err := lp.Charger.Enable(true); err != nil {
-	// 		return err
-	// 	}
-	// }
 }
 
 func (lp *LoadPoint) ApplyModeNow() error {
@@ -167,7 +182,6 @@ func (lp *LoadPoint) ApplyModeNow() error {
 
 	// set max charge current
 	if err := lp.setTargetCurrent(chargeCurrent, targetChargeCurrent); err != nil {
-		log.Println("FOO")
 		return err
 	}
 
@@ -205,7 +219,7 @@ func (lp *LoadPoint) ApplyModePV() error {
 
 	// get max charge current
 	f := PowerToCurrent(maxChargePower, lp.Voltage, lp.Phases)
-	targetChargeCurrent := int(math.Max(0, f))
+	targetChargeCurrent := int64(math.Max(0, f))
 	Logger.Printf("%s max charge current: %dA", lp.Name, targetChargeCurrent)
 
 	if targetChargeCurrent < lp.MinCurrent {
@@ -218,8 +232,8 @@ func (lp *LoadPoint) ApplyModePV() error {
 			targetChargeCurrent = 0
 			Logger.Printf("%s override charge power: 0W", lp.Name)
 		}
+		Logger.Printf("%s max charge current: %dA", lp.Name, targetChargeCurrent)
 	}
-	Logger.Printf("%s max charge current: %dA", lp.Name, targetChargeCurrent)
 
 	// set max charge current
 	if err := lp.setTargetCurrent(chargeCurrent, targetChargeCurrent); err != nil {
