@@ -11,10 +11,16 @@ import (
 	"time"
 
 	"github.com/andig/ulm/api"
+	"github.com/andig/ulm/core"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
 
 //go:generate esc -o assets.go -pkg server -modtime 1566640112 -prefix ../assets ../assets
+
+const (
+	liveAssets = false
+)
 
 type errorModeJson struct {
 	Error error `json:"error"`
@@ -24,31 +30,10 @@ type chargeModeJson struct {
 	Mode string `json:"mode"`
 }
 
-func IndexHandler(liveAssets bool) http.HandlerFunc {
-	template, err := FSString(liveAssets, "/index.html")
-	if err != nil {
-		log.Fatal("httpd: failed to load embedded template: " + err.Error())
-	}
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=UTF-8")
-		w.WriteHeader(http.StatusOK)
-
-		_, err := fmt.Fprint(w, template)
-		if err != nil {
-			log.Println("httpd: failed to render main page: ", err.Error())
-		}
-	})
-}
-
-// JsonHandler is a middleware that decorates responses with JSON and CORS headers
-func JsonHandler(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		// w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT")
-		h.ServeHTTP(w, r)
-	})
+type route struct {
+	Methods     []string
+	Pattern     string
+	HandlerFunc http.HandlerFunc
 }
 
 func RouteLogger(inner http.Handler) http.HandlerFunc {
@@ -76,13 +61,35 @@ func (d DebugLogger) Write(p []byte) (n int, err error) {
 	return os.Stderr.Write(p)
 }
 
-// SocketHandler attaches websocket handler to uri
-func SocketHandler(hub *SocketHub) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ServeWebsocket(hub, w, r)
+func IndexHandler(liveAssets bool) http.HandlerFunc {
+	template, err := FSString(liveAssets, "/index.html")
+	if err != nil {
+		log.Fatal("httpd: failed to load embedded template: " + err.Error())
 	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+
+		_, err := fmt.Fprint(w, template)
+		if err != nil {
+			log.Println("httpd: failed to render main page: ", err.Error())
+		}
+	})
 }
 
+// JsonHandler is a middleware that decorates responses with JSON and CORS headers
+func JsonHandler(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
+		h.ServeHTTP(w, r)
+	})
+}
+
+// CurrentChargeModeHandler returns current charge mode
 func CurrentChargeModeHandler(lp api.LoadPoint) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		res := chargeModeJson{
@@ -96,6 +103,7 @@ func CurrentChargeModeHandler(lp api.LoadPoint) http.HandlerFunc {
 	}
 }
 
+// ChargeModeHandler updates charge mode
 func ChargeModeHandler(lp api.LoadPoint) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
@@ -126,4 +134,63 @@ func ChargeModeHandler(lp api.LoadPoint) http.HandlerFunc {
 			log.Printf("httpd: failed to encode JSON: %s", err.Error())
 		}
 	}
+}
+
+// SocketHandler attaches websocket handler to uri
+func SocketHandler(hub *SocketHub) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ServeWebsocket(hub, w, r)
+	}
+}
+
+// NewHttpd creates HTTP server with configured routes for loadpoint
+func NewHttpd(url string, lp *core.LoadPoint, hub *SocketHub) *http.Server {
+	var routes = []route{
+		route{
+			[]string{"GET"},
+			"/mode",
+			CurrentChargeModeHandler(lp),
+		},
+		route{
+			[]string{"PUT", "POST", "OPTIONS"},
+			"/mode/{mode:[a-z]+}",
+			ChargeModeHandler(lp),
+		},
+	}
+
+	router := mux.NewRouter().StrictSlash(true)
+
+	// static
+	router.HandleFunc("/", IndexHandler(liveAssets))
+
+	// individual handlers per folder
+	for _, folder := range []string{"js", "css", "webfonts"} {
+		prefix := fmt.Sprintf("/%s/", folder)
+		router.PathPrefix(prefix).Handler(http.StripPrefix(prefix, http.FileServer(Dir(liveAssets, prefix))))
+	}
+
+	// api
+	api := router.PathPrefix("/api").Subrouter()
+	api.Use(JsonHandler)
+	for _, r := range routes {
+		api.
+			Methods(r.Methods...).
+			Path(r.Pattern).
+			Handler(r.HandlerFunc) // RouteLogger(r.HandlerFunc)
+	}
+
+	// websocket
+	router.HandleFunc("/ws", SocketHandler(hub))
+
+	srv := &http.Server{
+		Addr:         url,
+		Handler:      handlers.CompressHandler(router),
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
+		// ErrorLog: log.New(DebugLogger{}, "", 0),
+	}
+	srv.SetKeepAlivesEnabled(true)
+
+	return srv
 }

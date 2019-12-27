@@ -3,6 +3,7 @@ module github.com/andig/ulm
 go 1.13
 
 require (
+	github.com/docker/distribution v2.7.1+incompatible
 	github.com/eclipse/paho.mqtt.golang v1.2.0
 	github.com/golang/mock v1.3.1
 	github.com/gorilla/handlers v1.4.2

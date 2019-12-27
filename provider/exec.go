@@ -2,7 +2,6 @@ package provider
 
 import (
 	"context"
-	"log"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -29,8 +28,21 @@ func (e *Exec) StringValue(script string) api.StringProvider {
 			return "", err
 		}
 
-		log.Println("exec result: " + strings.TrimSpace(string(b)))
 		return strings.TrimSpace(string(b)), nil
+	}
+}
+
+func (e *Exec) IntValue(script string) api.IntProvider {
+	exec := e.StringValue(script)
+
+	// return func to access cached value
+	return func(ctx context.Context) (int64, error) {
+		s, err := exec(ctx)
+		if err != nil {
+			return 0, err
+		}
+
+		return strconv.ParseInt(s, 10, 64)
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"sync"
 
 	"github.com/andig/ulm/api"
 )
@@ -22,18 +23,23 @@ import (
 //    HArest = HAges - EVist
 //    EVsoll = -HArest
 type LoadPoint struct {
-	Name       string
-	Mode       api.ChargeMode
-	GridMeter  api.Meter // UsageMeter api.Meter
-	Charger    api.Charger
-	MinCurrent int64 // PV mode: start current	Min+PV mode: min current
-	MaxCurrent int64
-	Voltage    float64
-	Phases     float64
+	sync.Mutex
+	Name              string
+	Mode              api.ChargeMode
+	GridMeter         api.Meter // home usage meter
+	PVMeter           api.Meter // pv generation meter
+	ChargeMeter       api.Meter // charger usage meter
+	Charger           api.Charger
+	MinCurrent        int64 // PV mode: start current	Min+PV mode: min current
+	MaxCurrent        int64
+	Voltage           float64
+	Phases            float64
+	prevStatus        api.ChargeStatus
+	chargeStartEnergy float64
 }
 
 // NewLoadPoint creates a LoadPoint with sane defaults
-func NewLoadPoint(name string, charger api.Charger, meter api.Meter) *LoadPoint {
+func NewLoadPoint(name string, charger api.Charger) *LoadPoint {
 	return &LoadPoint{
 		Phases:     1,
 		Voltage:    230, // V
@@ -41,7 +47,6 @@ func NewLoadPoint(name string, charger api.Charger, meter api.Meter) *LoadPoint 
 		MaxCurrent: 16,  // A
 		Mode:       api.ModeNow,
 		Charger:    charger,
-		GridMeter:  meter,
 	}
 }
 
@@ -78,11 +83,19 @@ func (lp *LoadPoint) chargerEnable(enable bool) error {
 	return nil
 }
 
+// CurrentChargeMode returns current charge mode
 func (lp *LoadPoint) CurrentChargeMode() api.ChargeMode {
+	lp.Lock()
+	defer lp.Unlock()
+
 	return lp.Mode
 }
 
+// ChargeMode updates charge mode
 func (lp *LoadPoint) ChargeMode(mode api.ChargeMode) error {
+	lp.Lock()
+	defer lp.Unlock()
+
 	Logger.Printf("%s set charge mode: %s", lp.Name, string(mode))
 
 	// check if charger is controllable
@@ -90,14 +103,12 @@ func (lp *LoadPoint) ChargeMode(mode api.ChargeMode) error {
 
 	// disable charger if enabled
 	if mode == api.ModeOff {
-		return lp.chargerEnable(false)
-	}
-
-	// both modes require GridMeter
-	if mode == api.ModeMinPV || mode == api.ModePV {
-		if lp.GridMeter == nil || !chargerControllable {
-			return errors.New("invalid charge mode: " + string(mode))
+		if err := lp.chargerEnable(false); err != nil {
+			return err
 		}
+
+		lp.Mode = mode
+		return nil
 	}
 
 	// enable charger if disabled
@@ -105,17 +116,62 @@ func (lp *LoadPoint) ChargeMode(mode api.ChargeMode) error {
 		return err
 	}
 
+	// remaining modes require GridMeter
+	if mode == api.ModeMinPV || mode == api.ModePV {
+		if lp.GridMeter == nil || !chargerControllable {
+			return errors.New("invalid charge mode: " + string(mode))
+		}
+	}
+
 	lp.Mode = mode
 	return nil
 }
 
-func (lp *LoadPoint) Update() {
+// ChargedEnergy returns energy consumption since charge start
+func (lp *LoadPoint) ChargedEnergy() (float64, error) {
+	if lp.ChargeMeter == nil {
+		return 0, fmt.Errorf("%s no charge meter assigned", lp.Name)
+	}
+
+	f, err := lp.ChargeMeter.CurrentPower()
+	if err != nil {
+		return 0, fmt.Errorf("%s charge meter error: %s", lp.Name, err)
+	}
+
+	return f - lp.chargeStartEnergy, nil
+}
+
+// Validate loadpoint configuration
+func (lp *LoadPoint) Validate() {
 	if lp.Charger == nil {
 		panic(fmt.Sprintf("%s no charger assigned", lp.Name))
 	}
+}
 
+// Update reevaluates meters and charger state
+func (lp *LoadPoint) Update() {
+	// check charger status
+	enabled, err := lp.Charger.Enabled()
+	if err != nil {
+		log.Printf("%s charger error: %v", lp.Name, err)
+		return
+	}
+	Logger.Printf("%s charger enabled: %v", lp.Name, enabled)
+
+	// set mode=off if charger not enabled
+	lp.Lock()
 	Logger.Printf("%s charge mode: %s", lp.Name, lp.Mode)
 
+	if !enabled {
+		lp.Mode = api.ModeOff
+		lp.Unlock()
+		return
+	}
+
+	mode := lp.Mode
+	lp.Unlock()
+
+	// abort if no vehicle connected
 	status, err := lp.Charger.Status()
 	if err != nil {
 		log.Printf("%s charger error: %v", lp.Name, err)
@@ -123,32 +179,34 @@ func (lp *LoadPoint) Update() {
 	}
 	Logger.Printf("%s charger status: %s", lp.Name, status)
 
-	// no vehicle connected
 	if status != api.StatusC {
 		return
 	}
 
-	enabled, err := lp.Charger.Enabled()
-	if err != nil {
-		log.Printf("%s charger error: %v", lp.Name, err)
-		return
-	}
-	Logger.Printf("%s charger enabled: %v", lp.Name, enabled)
-	if !enabled {
-		return
+	// track starting charge energy
+	if lp.prevStatus != api.StatusC {
+		if lp.ChargeMeter != nil {
+			if f, err := lp.ChargeMeter.CurrentPower(); err == nil {
+				lp.prevStatus = status
+				lp.chargeStartEnergy = f
+			} else {
+				Logger.Printf("%s charge meter error: %s", lp.Name, err)
+			}
+		}
 	}
 
+	// abort if dumb charge controller
 	if _, chargeController := lp.Charger.(api.ChargeController); !chargeController {
 		log.Printf("%s no charge controller assigned", lp.Name)
 		return
 	}
 
 	// execute loading strategy
-	switch lp.Mode {
+	switch mode {
 	case api.ModeNow:
 		err = lp.ApplyModeNow()
 	case api.ModeMinPV, api.ModePV:
-		err = lp.ApplyModePV()
+		err = lp.ApplyModePV(mode)
 	}
 
 	if err != nil {
@@ -157,6 +215,7 @@ func (lp *LoadPoint) Update() {
 	}
 }
 
+// ApplyModeNow sets "now" charger mode
 func (lp *LoadPoint) ApplyModeNow() error {
 	// get grid power
 	if lp.GridMeter != nil {
@@ -188,7 +247,8 @@ func (lp *LoadPoint) ApplyModeNow() error {
 	return nil
 }
 
-func (lp *LoadPoint) ApplyModePV() error {
+// ApplyModePV sets "minpv" or "pv" load modes
+func (lp *LoadPoint) ApplyModePV(mode api.ChargeMode) error {
 	// get grid power
 	gridPower, err := lp.GridMeter.CurrentPower()
 	if err != nil {
@@ -223,7 +283,7 @@ func (lp *LoadPoint) ApplyModePV() error {
 	Logger.Printf("%s max charge current: %dA", lp.Name, targetChargeCurrent)
 
 	if targetChargeCurrent < lp.MinCurrent {
-		switch lp.Mode {
+		switch mode {
 		case api.ModeMinPV:
 			targetChargeCurrent = lp.MinCurrent
 			minPower := CurrentToPower(float64(targetChargeCurrent), lp.Voltage, lp.Phases)

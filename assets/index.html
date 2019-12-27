@@ -15,7 +15,7 @@
   <script src="js/bootstrap.bundle.min.js"></script>
 
   <!-- Fontawesame CSS -->
-  <link href="css/all.min.css" rel="stylesheet">
+  <link href="css/fontawesome.min.css" rel="stylesheet">
 
   <!-- Axios -->
   <script src="js/axios.min.js"></script>
@@ -36,62 +36,55 @@
   <a class="btn btn-outline-primary" href="#">Sign up</a> -->
 </div>
 
-<!-- <div id="networkError" class="alert alert-danger alert-dismissible" role="alert">
-  Network error.
-</div> -->
+<div class="container" id="mode">
+  <div class="alert alert-danger position-absolute fixed-top" v-bind:class="{invisible:!error}" role="alert">
+    <strong>Error:</strong> {{ error }}
+  </div>
 
-<div class="container" id="app">
-  <div class="pricing-header px-3 py-3 pt-md-5 pb-md-4 mx-auto text-center">
+  <!-- <div class="pricing-header px-3 py-3 pt-md-5 pb-md-4 mx-auto text-center"> -->
+  <div class="pricing-header px-3 py-3 mx-auto text-center">
     <h1 class="display-4">Laden</h1>
     <p class="lead">Lademodus für aktuellen Ladepunkt auswählen. EV verbinden um Ladevorgang zu starten.</p>
 
-    <div class="btn-group btn-group-toggle" data-toggle="buttons">
-      <label class="btn btn-outline-primary" v-bind:class="{active:activeMode('off')}">
+    <div class="btn-group btn-group-toggle py-4 mb-2" data-toggle="buttons">
+      <label class="btn btn-outline-primary" v-bind:class="{active:modeOff}">
         <input type="radio" name="mode" v-on:click="setMode('off')"> Stop
       </label>
-      <label class="btn btn-outline-primary" v-bind:class="{active:activeMode('now')}">
-        <input type="radio" name="mode" v-on:click="setMode('now')"> Sofortladen
+      <label class="btn btn-outline-primary" v-bind:class="{active:modeNow}">
+        <input type="radio" name="mode" v-on:click="setMode('now')"> 
+          <span class="d-inline d-sm-none">Sofort</span>
+          <span class="d-none d-sm-inline">Sofortladen</span>
+        </input>
       </label>
-      <label class="btn btn-outline-primary" v-bind:class="{active:activeMode('minpv')}">
-        <input type="radio" name="mode" v-on:click="setMode('minpv')"> Minimum + PV Überschuss
+      <label class="btn btn-outline-primary" v-bind:class="{active:modeMinPV}">
+        <input type="radio" name="mode" v-on:click="setMode('minpv')"> 
+          <span class="d-inline d-sm-none">Min + PV</span>
+          <span class="d-none d-sm-inline">Minimum + PV Überschuss</span>
+        </input>
       </label>
-      <label class="btn btn-outline-primary" v-bind:class="{active:activeMode('pv')}">
-        <input type="radio" name="mode" v-on:click="setMode('pv')"> Nur PV Überschuss
+      <label class="btn btn-outline-primary col-xs" v-bind:class="{active:modePV}">
+        <input type="radio" name="mode" v-on:click="setMode('pv')"> 
+          <span class="d-inline d-sm-none">Nur PV</span>
+          <span class="d-none d-sm-inline">Nur PV Überschuss</span>
+        </input>
       </label>
     </div>
   </div>
+</div>
 
-  <div class="card-deck mb-3 text-center">
-    <div class="card mb-4 shadow-sm">
-      <div class="card-header">
-        <h4 class="my-0 font-weight-normal">Hausanschluss</h4>
-      </div>
-      <div class="card-body">
-        <h1 class="card-title pricing-card-title">{{ format(gridPower) }} <small class="text-muted">{{ unit(gridPower) }}W</small></h1>
-        <p>
-        </p>
-        <!-- <button type="button" class="btn btn-lg btn-block btn-outline-primary">Start</button> -->
-      </div>
-    </div>
-    <div class="card mb-4 shadow-sm">
-      <div class="card-header">
-        <h4 class="my-0 font-weight-normal">PV</h4>
-      </div>
-      <div class="card-body">
-        <h1 class="card-title pricing-card-title">{{ format(pvPower) }} <small class="text-muted">{{ unit(pvPower) }}W</small></h1>
-        <p>
-        </p>
-        <!-- <button type="button" class="btn btn-lg btn-block btn-primary">Start</button> -->
-      </div>
-    </div>
+<div class="container" id="live">
+  <div class="card-deck mb-3  text-center">
     <div class="card mb-4 shadow-sm">
       <div class="card-header">
         <h4 class="my-0 font-weight-normal">Charger</h4>
       </div>
       <div class="card-body">
-        <h1 class="card-title pricing-card-title">{{ format(chargePower) }} <small class="text-muted">{{ unit(chargePower) }}W</small></h1>
-        <p>
-        </p>
+        <h1 class="card-title pricing-card-title">
+          {{ format(chargeCurrent) }} <small class="text-muted">A</small>
+          <span class="text-muted">/</span>
+          {{ format(chargePower) }} <small class="text-muted">{{ unit(chargePower) }}W</small>
+        </h1>
+        <p>Wallbox</p>
         <!-- <button type="button" class="btn btn-lg btn-block btn-primary">Start</button> -->
       </div>
     </div>    
@@ -100,9 +93,34 @@
         <h4 class="my-0 font-weight-normal">SoC</h4>
       </div>
       <div class="card-body">
-        <h1 class="card-title pricing-card-title">{{ format(socCharge) }} <small class="text-muted">%</small></h1>
-        <p>
-        </p>
+        <h1 class="card-title pricing-card-title">
+          {{ format(socCharge) }} <small class="text-muted">%</small>
+          <span class="text-muted">/</span>
+          {{ format(socEnergy) }} <small class="text-muted">kWh</small>
+        </h1>
+        <p>Ladezustand</p>
+        <!-- <button type="button" class="btn btn-lg btn-block btn-primary">Start</button> -->
+      </div>
+    </div>
+    <div class="card mb-4 shadow-sm">
+      <div class="card-header">
+        <h4 class="my-0 font-weight-normal">Hausanschluss</h4>
+      </div>
+      <div class="card-body">
+        <h1 class="card-title pricing-card-title">{{ format(gridPower) }} <small
+            class="text-muted">{{ unit(gridPower) }}W</small></h1>
+        <p>{{ gridMode }}</p>
+        <!-- <button type="button" class="btn btn-lg btn-block btn-outline-primary">Start</button> -->
+      </div>
+    </div>
+    <div class="card mb-4 shadow-sm">
+      <div class="card-header">
+        <h4 class="my-0 font-weight-normal">PV</h4>
+      </div>
+      <div class="card-body">
+        <h1 class="card-title pricing-card-title">{{ format(pvPower) }} <small
+            class="text-muted">{{ unit(pvPower) }}W</small></h1>
+        <p>Erzeugung</p>
         <!-- <button type="button" class="btn btn-lg btn-block btn-primary">Start</button> -->
       </div>
     </div>

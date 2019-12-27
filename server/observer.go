@@ -7,11 +7,13 @@ import (
 	"github.com/andig/ulm/api"
 )
 
+// Observer allows to intercept provider functions and re-use their values
 type Observer struct {
 	values   chan<- SocketValue
 	observed []interface{}
 }
 
+// NewObserver creates new observer
 func NewObserver(c chan<- SocketValue) *Observer {
 	return &Observer{
 		values:   c,
@@ -19,6 +21,9 @@ func NewObserver(c chan<- SocketValue) *Observer {
 	}
 }
 
+// Observe wraps a provider function, allowing to intercept the returned value
+// and relaying it to the observer's channel. The wrapped function is added to the
+// observer's list of observed functions.
 func (m *Observer) Observe(key string, fun interface{}) {
 	switch typed := fun.(type) {
 	case api.FloatProvider:
@@ -32,6 +37,7 @@ func (m *Observer) Observe(key string, fun interface{}) {
 	}
 }
 
+// Update updates all observed values
 func (m *Observer) Update(ctx context.Context) {
 	for _, fun := range m.observed {
 		switch typed := fun.(type) {
@@ -51,6 +57,7 @@ func (m *Observer) Update(ctx context.Context) {
 	}
 }
 
+// FloatValue returns a wrapped api provider
 func (m *Observer) FloatValue(key string, fun api.FloatProvider) api.FloatProvider {
 	return func(ctx context.Context) (float64, error) {
 		val, err := fun(ctx)
