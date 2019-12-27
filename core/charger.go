@@ -11,7 +11,7 @@ const (
 	timeout = 1 * time.Second
 )
 
-type charger struct {
+type Charger struct {
 	statusP        api.StringProvider
 	actualCurrentP api.IntProvider
 	enabledP       api.BoolProvider
@@ -25,7 +25,7 @@ func NewCharger(
 	enabledP api.BoolProvider,
 	enableS api.BoolSetter,
 ) api.Charger {
-	return &charger{
+	return &Charger{
 		statusP:        statusP,
 		actualCurrentP: actualCurrentP,
 		enabledP:       enabledP,
@@ -33,7 +33,7 @@ func NewCharger(
 	}
 }
 
-func (m *charger) Status() (api.ChargeStatus, error) {
+func (m *Charger) Status() (api.ChargeStatus, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -45,21 +45,21 @@ func (m *charger) Status() (api.ChargeStatus, error) {
 	return api.ChargeStatus(s), nil
 }
 
-func (m *charger) ActualCurrent() (int64, error) {
+func (m *Charger) ActualCurrent() (int64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	return m.actualCurrentP(ctx)
 }
 
-func (m *charger) Enabled() (bool, error) {
+func (m *Charger) Enabled() (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	return m.enabledP(ctx)
 }
 
-func (m *charger) Enable(enable bool) error {
+func (m *Charger) Enable(enable bool) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 

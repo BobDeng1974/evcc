@@ -45,7 +45,9 @@ func mockedLP(ctrl *gomock.Controller, tc testCase) *LoadPoint {
 			Return(nil)
 	}
 
-	lp := NewLoadPoint("lp1", testCharger{cr, cc}, m)
+	lp := NewLoadPoint("lp1", testCharger{cr, cc})
+	lp.GridMeter = m
+
 	lp.Mode = tc.Mode
 	if tc.MinCurrent > 0 {
 		lp.MinCurrent = tc.MinCurrent
@@ -59,8 +61,7 @@ func mockedLP(ctrl *gomock.Controller, tc testCase) *LoadPoint {
 
 func TestNewLoadPoint(t *testing.T) {
 	var c api.Charger
-	var m api.Meter
-	var lp api.LoadPoint = NewLoadPoint("lp1", c, m)
+	var lp api.LoadPoint = NewLoadPoint("lp1", c)
 	_ = lp
 }
 
@@ -73,7 +74,7 @@ func TestChargerEnableNoChange(t *testing.T) {
 		Enabled().
 		Return(false, nil)
 
-	lp := NewLoadPoint("lp1", c, nil)
+	lp := NewLoadPoint("lp1", c)
 	lp.chargerEnable(false)
 }
 
@@ -89,7 +90,7 @@ func TestChargerEnableChange(t *testing.T) {
 		Enable(true).
 		Return(nil)
 
-	lp := NewLoadPoint("lp1", c, nil)
+	lp := NewLoadPoint("lp1", c)
 	lp.chargerEnable(true)
 }
 
@@ -102,7 +103,7 @@ func TestEVNotConnected(t *testing.T) {
 		Status().
 		Return(api.StatusA, nil)
 
-	lp := NewLoadPoint("lp1", c, nil)
+	lp := NewLoadPoint("lp1", c)
 
 	lp.Update()
 }
@@ -119,7 +120,7 @@ func TestEVConnectedButDisabled(t *testing.T) {
 		Enabled().
 		Return(false, nil)
 
-	lp := NewLoadPoint("lp1", c, nil)
+	lp := NewLoadPoint("lp1", c)
 
 	lp.Update()
 }

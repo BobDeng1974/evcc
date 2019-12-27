@@ -80,7 +80,7 @@ func (m *MqttClient) FloatValue(topic string) api.FloatProvider {
 		defer mux.Unlock()
 
 		if val, err = strconv.ParseFloat(s, 64); err == nil {
-			log.Printf("mqtt: recv %s value '%.2f'", topic, val)
+			// log.Printf("mqtt: recv %s value '%.2f'", topic, val)
 			ts = time.Now()
 		} else {
 			log.Printf("mqtt: invalid value '%s'", s)

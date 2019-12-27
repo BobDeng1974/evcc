@@ -99,6 +99,9 @@ func (h *SocketHub) encode(v SocketValue) ([]byte, error) {
 	case float64:
 		s := fmt.Sprintf("{\"%s\": %.3f}", v.Key, v.Val)
 		return []byte(s), nil
+	case string:
+		s := fmt.Sprintf("{\"%s\": \"%s\"}", v.Key, v.Val)
+		return []byte(s), nil
 	}
 
 	return []byte{}, errors.New("encode: invalid format")

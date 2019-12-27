@@ -41,6 +41,7 @@ type LoadPoint struct {
 // NewLoadPoint creates a LoadPoint with sane defaults
 func NewLoadPoint(name string, charger api.Charger) *LoadPoint {
 	return &LoadPoint{
+		Name:       name,
 		Phases:     1,
 		Voltage:    230, // V
 		MinCurrent: 5,   // A
@@ -139,13 +140,6 @@ func (lp *LoadPoint) ChargedEnergy() (float64, error) {
 	}
 
 	return f - lp.chargeStartEnergy, nil
-}
-
-// Validate loadpoint configuration
-func (lp *LoadPoint) Validate() {
-	if lp.Charger == nil {
-		panic(fmt.Sprintf("%s no charger assigned", lp.Name))
-	}
 }
 
 // Update reevaluates meters and charger state

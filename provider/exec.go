@@ -12,7 +12,7 @@ import (
 
 type Exec struct{}
 
-func (e *Exec) StringValue(script string) api.StringProvider {
+func (e *Exec) StringProvider(script string) api.StringProvider {
 	args, err := shellquote.Split(script)
 	if err != nil {
 		panic(err)
@@ -32,8 +32,8 @@ func (e *Exec) StringValue(script string) api.StringProvider {
 	}
 }
 
-func (e *Exec) IntValue(script string) api.IntProvider {
-	exec := e.StringValue(script)
+func (e *Exec) IntProvider(script string) api.IntProvider {
+	exec := e.StringProvider(script)
 
 	// return func to access cached value
 	return func(ctx context.Context) (int64, error) {
@@ -46,8 +46,8 @@ func (e *Exec) IntValue(script string) api.IntProvider {
 	}
 }
 
-func (e *Exec) FloatValue(script string) api.FloatProvider {
-	exec := e.StringValue(script)
+func (e *Exec) FloatProvider(script string) api.FloatProvider {
+	exec := e.StringProvider(script)
 
 	// return func to access cached value
 	return func(ctx context.Context) (float64, error) {
@@ -57,5 +57,57 @@ func (e *Exec) FloatValue(script string) api.FloatProvider {
 		}
 
 		return strconv.ParseFloat(s, 64)
+	}
+}
+
+func (e *Exec) BoolProvider(script string) api.BoolProvider {
+	exec := e.StringProvider(script)
+
+	// return func to access cached value
+	return func(ctx context.Context) (bool, error) {
+		s, err := exec(ctx)
+		if err != nil {
+			return false, err
+		}
+
+		return truish(s), nil
+	}
+}
+
+func (e *Exec) IntSetter(param, script string) api.IntSetter {
+	// return func to access cached value
+	return func(ctx context.Context, i int64) error {
+		cmd, err := replaceFormatted(script, map[string]interface{}{
+			param: i,
+		})
+		if err != nil {
+			return err
+		}
+
+		exec := e.StringProvider(cmd)
+		if _, err := exec(ctx); err != nil {
+			return err
+		}
+
+		return nil
+	}
+}
+
+func (e *Exec) BoolSetter(param, script string) api.BoolSetter {
+	// return func to access cached value
+	return func(ctx context.Context, b bool) error {
+		cmd, err := replaceFormatted(script, map[string]interface{}{
+			param: b,
+		})
+		if err != nil {
+			return err
+		}
+
+		exec := e.StringProvider(cmd)
+		if _, err := exec(ctx); err != nil {
+			return err
+		}
+
+		return nil
 	}
 }
