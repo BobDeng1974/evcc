@@ -7,8 +7,7 @@ import (
 )
 
 func TestWallbe(t *testing.T) {
-	var c api.Charger
-	c = NewWallbe("192.168.0.8:502")
+	var c api.Charger = NewWallbe("192.168.0.8:502")
 
 	if _, ok := c.(api.ChargeController); !ok {
 		t.Error("not a charge controller")

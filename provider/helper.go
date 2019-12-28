@@ -11,7 +11,7 @@ func truish(s string) bool {
 	return s == "1" || strings.ToLower(s) == "true" || strings.ToLower(s) == "on"
 }
 
-var re = regexp.MustCompile("\\${(\\w+)(:([a-zA-Z0-9%.]+))?}")
+var re = regexp.MustCompile(`\${(\w+)(:([a-zA-Z0-9%.]+))?}`)
 
 // replaceFormatted replaces all occurrances of ${key} with val from the kv map.
 // All keys of kv must exist inside the string to apply replacements to

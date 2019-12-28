@@ -75,7 +75,9 @@ func TestChargerEnableNoChange(t *testing.T) {
 		Return(false, nil)
 
 	lp := NewLoadPoint("lp1", c)
-	lp.chargerEnable(false)
+	if err := lp.chargerEnable(false); err != nil {
+		t.Error(err)
+	}
 }
 
 func TestChargerEnableChange(t *testing.T) {
@@ -91,7 +93,9 @@ func TestChargerEnableChange(t *testing.T) {
 		Return(nil)
 
 	lp := NewLoadPoint("lp1", c)
-	lp.chargerEnable(true)
+	if err := lp.chargerEnable(false); err != nil {
+		t.Error(err)
+	}
 }
 
 func TestEVNotConnected(t *testing.T) {

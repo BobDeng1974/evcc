@@ -1,22 +1,26 @@
+mqtt:
+  server: nas.fritz.box:1883
+  qos: 1
+
 meters:
-- name: Netzverknüpfungspunkt
+- name: netz
+  type: mqtt
+  topic: mbmd/sdm1-1/Power
+- name: pv
+  type: mqtt
+  topic: mbmd/sdm1-2/Power
+- name: charge
   type: exec
-  cmd: /bin/sh -c foo:bar
+  cmd: /bin/bash -c echo 0
 
 chargers:
-- name: Wallbe
-  type: exec
-  cmds:
-    status: /bin/sh -c "echo A"
-    enable: /bin/sh -c true
-    maxpower: /bin/sh -c false
+- name: wallbe
+  type: wallbe
+  uri: 192.168.0.8:502
 
 loadpoints:
-- name: LoadPoint 1
-  meter: Netzverknüpfungspunkt
-  charger: Wallbe
-  strategies:
-  - name: PV Ladung
-    type: pv
-  - name: Zielladung
-    type: targettime
+- name: lp1
+  charger: wallbe
+  gridmeter: netz
+  pvmeter: pv
+  chargemeter: charge

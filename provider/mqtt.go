@@ -19,10 +19,9 @@ const (
 
 // MqttClient is a paho publisher
 type MqttClient struct {
-	Client    mqtt.Client
-	publisher func(string, float64)
-	qos       byte
-	verbose   bool
+	Client  mqtt.Client
+	qos     byte
+	verbose bool
 }
 
 // NewMqttClient creates new publisher for paho

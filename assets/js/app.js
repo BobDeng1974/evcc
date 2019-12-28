@@ -58,8 +58,8 @@ const live = new Vue({
     pvPower: 0,
     chargeCurrent: 0,
     chargePower: 0,
+    chargeEnergy: 0,
     socCharge: 0,
-    socEnergy: 0,
   },
   computed: {
     gridMode: function () {

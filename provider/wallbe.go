@@ -9,6 +9,7 @@ import (
 )
 
 const (
+	slaveID = 255
 	timeout = 1 * time.Second
 )
 
@@ -21,8 +22,8 @@ func NewWallbe(conn string) api.Charger {
 	handler := modbus.NewTCPClientHandler(conn)
 	client := modbus.NewClient(handler)
 
-	handler.SlaveID = 255
-	handler.Timeout = 1 * time.Second
+	handler.SlaveID = slaveID
+	handler.Timeout = timeout
 
 	return &Wallbe{
 		client: client,
