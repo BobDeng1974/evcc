@@ -170,6 +170,14 @@ func run(cmd *cobra.Command, args []string) {
 		core.Logger = logger
 	}
 
+	if cfgFile != "" {
+		var conf Config
+		if err := viper.UnmarshalExact(&conf); err != nil {
+			log.Fatalf("config: failed parsing config file %s: %v", cfgFile, err)
+		}
+		log.Println(conf)
+	}
+
 	// mqtt provider
 	mq := provider.NewMqttClient("nas.fritz.box:1883", "", "", clientID(), true, 1)
 
