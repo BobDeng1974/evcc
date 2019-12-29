@@ -3,7 +3,7 @@ package core
 import (
 	"context"
 
-	"github.com/andig/ulm/api"
+	"github.com/andig/evcc/api"
 )
 
 type ChargeController struct {

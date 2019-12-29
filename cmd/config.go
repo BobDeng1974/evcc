@@ -15,10 +15,10 @@ type MqttConfig struct {
 }
 
 type MeterConfig struct {
-	Name  string
-	Type  string
-	Topic string
-	Cmd   string
+	Name   string
+	Type   string
+	Power  string
+	Energy string
 }
 
 type ChargerConfig struct {

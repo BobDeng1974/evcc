@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/andig/ulm/api"
+	"github.com/andig/evcc/api"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 

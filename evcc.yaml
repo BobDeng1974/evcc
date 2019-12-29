@@ -5,13 +5,14 @@ mqtt:
 meters:
 - name: netz
   type: mqtt
-  topic: mbmd/sdm1-1/Power
+  power: mbmd/sdm1-1/Power
 - name: pv
   type: mqtt
-  topic: mbmd/sdm1-2/Power
+  power: mbmd/sdm1-2/Power
 - name: charge
   type: exec
-  cmd: /bin/bash -c echo 0
+  power: /bin/bash -c echo 0
+  energy: /bin/bash -c echo 1200
 
 chargers:
 - name: wallbe

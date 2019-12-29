@@ -3,7 +3,7 @@ package provider
 import (
 	"testing"
 
-	"github.com/andig/ulm/api"
+	"github.com/andig/evcc/api"
 )
 
 func TestWallbe(t *testing.T) {

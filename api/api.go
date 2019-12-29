@@ -1,10 +1,15 @@
 package api
 
-//go:generate mockgen -destination mock_api/api.go github.com/andig/ulm/api Charger,ChargeController,Meter
+//go:generate mockgen -destination mock_api/api.go github.com/andig/evcc/api Charger,ChargeController,Meter
 
 // Meter is able to provide current power at metering point
 type Meter interface {
 	CurrentPower() (float64, error)
+}
+
+// MeterEnergy is able to provide current power at metering point
+type MeterEnergy interface {
+	TotalEnergy() (float64, error)
 }
 
 // ChargeStatus is the EVSE models charging status from A to F

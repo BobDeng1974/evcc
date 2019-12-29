@@ -7,7 +7,7 @@ import (
 	"math"
 	"sync"
 
-	"github.com/andig/ulm/api"
+	"github.com/andig/evcc/api"
 )
 
 // LoadPoint is responsible for controlling charge depending on
@@ -26,11 +26,11 @@ type LoadPoint struct {
 	sync.Mutex
 	Name              string
 	Mode              api.ChargeMode
+	Charger           api.Charger
 	GridMeter         api.Meter // home usage meter
 	PVMeter           api.Meter // pv generation meter
 	ChargeMeter       api.Meter // charger usage meter
-	Charger           api.Charger
-	MinCurrent        int64 // PV mode: start current	Min+PV mode: min current
+	MinCurrent        int64     // PV mode: start current	Min+PV mode: min current
 	MaxCurrent        int64
 	Voltage           float64
 	Phases            float64

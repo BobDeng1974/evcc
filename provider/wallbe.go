@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"time"
 
-	"github.com/andig/ulm/api"
+	"github.com/andig/evcc/api"
 	"github.com/grid-x/modbus"
 )
 

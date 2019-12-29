@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/andig/ulm/api"
-	"github.com/andig/ulm/core"
-	"github.com/andig/ulm/provider"
-	"github.com/andig/ulm/server"
+	"github.com/andig/evcc/api"
+	"github.com/andig/evcc/core"
+	"github.com/andig/evcc/provider"
+	"github.com/andig/evcc/server"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

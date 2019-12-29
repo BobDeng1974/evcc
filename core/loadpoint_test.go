@@ -3,8 +3,8 @@ package core
 import (
 	"testing"
 
-	"github.com/andig/ulm/api"
-	"github.com/andig/ulm/api/mock_api"
+	"github.com/andig/evcc/api"
+	"github.com/andig/evcc/api/mock_api"
 	"github.com/golang/mock/gomock"
 )
 

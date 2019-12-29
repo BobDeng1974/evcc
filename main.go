@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/andig/ulm/cmd"
+	"github.com/andig/evcc/cmd"
 )
 
 func main() {

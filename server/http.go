@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/andig/ulm/api"
-	"github.com/andig/ulm/core"
+	"github.com/andig/evcc/api"
+	"github.com/andig/evcc/core"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
