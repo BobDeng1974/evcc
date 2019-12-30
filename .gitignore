@@ -5,3 +5,4 @@ linux-arm-7.Dockerfile
 linux-arm-6.Dockerfile
 linux-arm64-.Dockerfile
 manifest.json
+.vscode

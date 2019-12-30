@@ -7,7 +7,7 @@ import (
 	"github.com/andig/evcc/provider"
 )
 
-func stringProvider(pc *ProviderConfig) (res api.StringProvider) {
+func stringProvider(pc *providerConfig) (res api.StringProvider) {
 	switch pc.Type {
 	case "exec", "script":
 		exec := &provider.Exec{}
@@ -18,7 +18,7 @@ func stringProvider(pc *ProviderConfig) (res api.StringProvider) {
 	return
 }
 
-func boolProvider(pc *ProviderConfig) (res api.BoolProvider) {
+func boolProvider(pc *providerConfig) (res api.BoolProvider) {
 	switch pc.Type {
 	case "exec", "script":
 		exec := &provider.Exec{}
@@ -29,7 +29,7 @@ func boolProvider(pc *ProviderConfig) (res api.BoolProvider) {
 	return
 }
 
-func intProvider(pc *ProviderConfig) (res api.IntProvider) {
+func intProvider(pc *providerConfig) (res api.IntProvider) {
 	switch pc.Type {
 	case "mqtt":
 		res = mq.IntProvider(pc.Topic)
@@ -42,7 +42,7 @@ func intProvider(pc *ProviderConfig) (res api.IntProvider) {
 	return
 }
 
-func floatProvider(pc *ProviderConfig) (res api.FloatProvider) {
+func floatProvider(pc *providerConfig) (res api.FloatProvider) {
 	switch pc.Type {
 	case "mqtt":
 		res = mq.FloatProvider(pc.Topic)
@@ -55,7 +55,7 @@ func floatProvider(pc *ProviderConfig) (res api.FloatProvider) {
 	return
 }
 
-func boolSetter(param string, pc *ProviderConfig) (res api.BoolSetter) {
+func boolSetter(param string, pc *providerConfig) (res api.BoolSetter) {
 	switch pc.Type {
 	case "exec", "script":
 		exec := &provider.Exec{}
@@ -66,7 +66,7 @@ func boolSetter(param string, pc *ProviderConfig) (res api.BoolSetter) {
 	return
 }
 
-func intSetter(param string, pc *ProviderConfig) (res api.IntSetter) {
+func intSetter(param string, pc *providerConfig) (res api.IntSetter) {
 	switch pc.Type {
 	case "exec", "script":
 		exec := &provider.Exec{}

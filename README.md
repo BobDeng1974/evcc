@@ -1,7 +1,7 @@
 # evcc
 EV Charge Controller - this is an experiment, don't expect anything
 
-![Sample](docs/sample.png)
+![Screenshot](docs/screenshot.png)
 
 ## Why EVCC?
 
@@ -16,7 +16,7 @@ Hence, for a simplified and stricter implementation of an EV charge controller, 
 - containerized operation beyond Raspbery Pi - provide multi-arch [Docker Image](4)
 - support for multiple load points - tbd
 
-[1] https://github.com/snaptec/openWB
-[2] https://golang.org
-[3] https://getbootstrap.org
-[4] https://hub.docker.com/repository/docker/andig/evcc
+[1]: https://github.com/snaptec/openWB
+[2]: https://golang.org
+[3]: https://getbootstrap.org
+[4]: https://hub.docker.com/repository/docker/andig/evcc

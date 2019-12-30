@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/andig/evcc/api"
 	"github.com/andig/evcc/core"
-	"github.com/andig/evcc/provider"
 	"github.com/andig/evcc/server"
 
 	"github.com/spf13/cobra"
@@ -18,7 +16,6 @@ import (
 
 var (
 	cfgFile    string
-	mq         *provider.MqttClient
 	loadPoints []*core.LoadPoint
 	clientPush = make(chan server.SocketValue)
 )
@@ -27,24 +24,18 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "evcc",
 	Short: "EV Charge Controller",
-	// Long:  "Easily read and distribute data from ModBus meters and grid inverters",
-	Run: run,
-}
-
-type CompositeCharger struct {
-	api.Charger
-	api.ChargeController
+	Run:   run,
 }
 
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringVarP(&cfgFile,
+	rootCmd.PersistentFlags().StringP(
 		"uri", "u",
 		"0.0.0.0:8080",
 		"Listen address",
 	)
-	viper.BindPFlag("uri", rootCmd.Flags().Lookup("uri"))
+	viper.BindPFlag("uri", rootCmd.PersistentFlags().Lookup("uri"))
 
 	rootCmd.PersistentFlags().StringVarP(&cfgFile,
 		"config", "c",
@@ -140,129 +131,6 @@ func observeLoadPoint(lp *core.LoadPoint) {
 	clientPush <- server.SocketValue{Key: "mode", Val: string(lp.CurrentChargeMode())}
 }
 
-func observeLoadPoints() {
-	var wg sync.WaitGroup
-	for _, lp := range loadPoints {
-		wg.Add(1)
-		go func(lp *core.LoadPoint) {
-			observeLoadPoint(lp)
-			wg.Done()
-		}(lp)
-	}
-	wg.Wait()
-}
-
-func clientID() string {
-	pid := os.Getpid()
-	return fmt.Sprintf("ulm-%d", pid)
-}
-
-func configureLoadPoint(lp *core.LoadPoint, lpc LoadPointConfig) {
-	if lpc.Mode != "" {
-		lp.Mode = api.ChargeMode(lpc.Mode)
-	}
-	if lpc.MinCurrent > 0 {
-		lp.MinCurrent = lpc.MinCurrent
-	}
-	if lpc.MaxCurrent > 0 {
-		lp.MaxCurrent = lpc.MaxCurrent
-	}
-	if lpc.Voltage > 0 {
-		lp.Voltage = lpc.Voltage
-	}
-	if lpc.Phases > 0 {
-		lp.Phases = lpc.Phases
-	}
-}
-
-func loadConfig(conf Config) {
-	if viper.Get("mqtt") != nil {
-		mq = provider.NewMqttClient(conf.Mqtt.Broker, conf.Mqtt.User, conf.Mqtt.Password, clientID(), true, 1)
-	}
-
-	meters := make(map[string]api.Meter)
-	for _, mc := range conf.Meters {
-		var p api.FloatProvider
-
-		switch mc.Type {
-		case "mqtt":
-			p = mq.FloatProvider(mc.Power)
-		case "exec":
-			exec := &provider.Exec{}
-			p = exec.FloatProvider(mc.Power)
-		default:
-			log.Fatalf("invalid meter type %s", mc.Type)
-		}
-
-		m := core.NewMeter(p)
-		meters[mc.Name] = m
-	}
-
-	chargers := make(map[string]api.Charger)
-	for _, cc := range conf.Chargers {
-		var c api.Charger
-
-		switch cc.Type {
-		case "wallbe":
-			c = provider.NewWallbe(cc.URI)
-		case "configurable":
-			status := stringProvider(cc.Status)
-			actualCurrent := intProvider(cc.ActualCurrent)
-			enable := boolSetter("enable", cc.Enable)
-			enabled := boolProvider(cc.Enabled)
-			c = core.NewCharger(
-				status,
-				actualCurrent,
-				enabled,
-				enable,
-			)
-
-			// if chargecontroller specified build composite charger
-			if cc.MaxCurrent != nil {
-				c = &CompositeCharger{
-					c,
-					core.NewChargeController(
-						intSetter("current", cc.MaxCurrent),
-					),
-				}
-			}
-		default:
-			log.Fatalf("invalid charger type %s", cc.Type)
-		}
-
-		chargers[cc.Name] = c
-	}
-
-	for _, lpc := range conf.LoadPoints {
-		lp := core.NewLoadPoint(
-			lpc.Name,
-			chargers[lpc.Charger],
-		)
-
-		// assign meters
-		for _, m := range []struct {
-			key   string
-			meter *api.Meter
-		}{
-			{lpc.GridMeter, &lp.GridMeter},
-			{lpc.ChargeMeter, &lp.ChargeMeter},
-			{lpc.PVMeter, &lp.PVMeter},
-		} {
-			if m.key != "" {
-				if impl, ok := meters[m.key]; ok {
-					*m.meter = impl
-				} else {
-					log.Fatalf("invalid meter %s", m.key)
-				}
-			}
-		}
-
-		// assign remaing config
-		configureLoadPoint(lp, lpc)
-		loadPoints = append(loadPoints, lp)
-	}
-}
-
 func run(cmd *cobra.Command, args []string) {
 	if true {
 		logger := log.New(os.Stdout, "", log.LstdFlags)
@@ -270,7 +138,7 @@ func run(cmd *cobra.Command, args []string) {
 	}
 
 	if cfgFile != "" {
-		var conf Config
+		var conf config
 		if err := viper.UnmarshalExact(&conf); err != nil {
 			log.Fatalf("config: failed parsing config file %s: %v", cfgFile, err)
 		}

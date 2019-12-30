@@ -2,13 +2,8 @@ package core
 
 import (
 	"context"
-	"time"
 
 	"github.com/andig/evcc/api"
-)
-
-const (
-	timeout = 1 * time.Second
 )
 
 type Charger struct {
