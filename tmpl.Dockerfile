@@ -30,7 +30,7 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /etc/passwd /etc/passwd
 
 # Copy our static executable.
-COPY --from=builder /build/mbmd /go/bin/mbmd
+COPY --from=builder /build/evcc /go/bin/evcc
 
 # Use an unprivileged user.
 USER appuser
@@ -38,4 +38,4 @@ USER appuser
 EXPOSE 8080
 
 # Run the binary
-ENTRYPOINT ["/go/bin/mbmd"]
+ENTRYPOINT ["/go/bin/evcc"]

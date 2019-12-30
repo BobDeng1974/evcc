@@ -3,6 +3,7 @@ package cmd
 import "github.com/andig/evcc/api"
 
 type Config struct {
+	URI        string
 	Mqtt       MqttConfig
 	Meters     []MeterConfig
 	Chargers   []ChargerConfig

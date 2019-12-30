@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -15,10 +14,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-)
-
-const (
-	url = "127.1:7070"
 )
 
 var (
@@ -45,6 +40,13 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringVarP(&cfgFile,
+		"uri", "u",
+		"0.0.0.0:8080",
+		"Listen address",
+	)
+	viper.BindPFlag("uri", rootCmd.Flags().Lookup("uri"))
+
+	rootCmd.PersistentFlags().StringVarP(&cfgFile,
 		"config", "c",
 		"",
 		"Config file (default is $HOME/evcc.yaml)",
@@ -59,11 +61,6 @@ func init() {
 		false,
 		"Verbose mode",
 	)
-
-	// bind command line options
-	// if err := viper.BindPFlags(rootCmd.PersistentFlags()); err != nil {
-	// 	log.Fatal(err)
-	// }
 }
 
 // initConfig reads in config file and ENV variables if set
@@ -153,11 +150,6 @@ func observeLoadPoints() {
 		}(lp)
 	}
 	wg.Wait()
-}
-
-func logEnabled() bool {
-	env := strings.TrimSpace(os.Getenv("ULM_DEBUG"))
-	return env != "" && env != "0"
 }
 
 func clientID() string {
@@ -272,7 +264,7 @@ func loadConfig(conf Config) {
 }
 
 func run(cmd *cobra.Command, args []string) {
-	if true || logEnabled() {
+	if true {
 		logger := log.New(os.Stdout, "", log.LstdFlags)
 		core.Logger = logger
 	}
@@ -292,7 +284,7 @@ func run(cmd *cobra.Command, args []string) {
 
 	// create webserver
 	hub := server.NewSocketHub()
-	httpd := server.NewHttpd(url, lp, hub)
+	httpd := server.NewHttpd(viper.GetString("uri"), lp, hub)
 
 	// start broadcasting values
 	go hub.Run(clientPush)

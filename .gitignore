@@ -1,0 +1,7 @@
+evcc.yaml
+linux-386-.Dockerfile
+linux-amd64-.Dockerfile
+linux-arm-7.Dockerfile
+linux-arm-6.Dockerfile
+linux-arm64-.Dockerfile
+manifest.json
