@@ -69,7 +69,7 @@ const live = new Vue({
   methods: {
     format: function (val) {
       val = Math.abs(val);
-      return (val >= 1e3) ? (val / 1e3).toFixed(2) : val.toFixed(0);
+      return (val >= 1e3) ? (val / 1e3).toFixed(1) : val.toFixed(0);
     },
     unit: function (val) {
       return (Math.abs(val) >= 1e3) ? "k" : "";
@@ -78,6 +78,8 @@ const live = new Vue({
       Object.keys(msg).forEach(function (k) {
         if (this[k] !== undefined) {
           this[k] = msg[k];
+        } else if (mode[k] !== undefined) {
+          mode[k] = msg[k]; // send to mode app
         } else {
           console.error("invalid data key: " + k)
         }
@@ -96,6 +98,7 @@ const live = new Vue({
       };
       ws.onmessage = function (evt) {
         var msg = JSON.parse(evt.data);
+        console.log(msg)
         self.update(msg);
       };
     },

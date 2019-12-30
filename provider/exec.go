@@ -2,6 +2,8 @@ package provider
 
 import (
 	"context"
+	"errors"
+	"log"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -10,8 +12,10 @@ import (
 	"github.com/kballard/go-shellquote"
 )
 
+// Exec implements shell script-based providers and setters
 type Exec struct{}
 
+// StringProvider returns string from exec result. Only STDOUT is considered.
 func (e *Exec) StringProvider(script string) api.StringProvider {
 	args, err := shellquote.Split(script)
 	if err != nil {
@@ -23,15 +27,25 @@ func (e *Exec) StringProvider(script string) api.StringProvider {
 	// return func to access cached value
 	return func(ctx context.Context) (string, error) {
 		cmd := exec.CommandContext(ctx, args[0], args[1:]...)
-		b, err := cmd.CombinedOutput()
+		b, err := cmd.Output()
+		s := strings.TrimSpace(string(b))
+
 		if err != nil {
+			// use STDOUT if available
+			var ee *exec.ExitError
+			if errors.As(err, &ee) {
+				s = strings.TrimSpace(string(ee.Stderr))
+			}
+
+			log.Printf("exec: %s <- %s", s, strings.Join(args, ","))
 			return "", err
 		}
 
-		return strings.TrimSpace(string(b)), nil
+		return s, nil
 	}
 }
 
+// IntProvider parses int64 from exec result
 func (e *Exec) IntProvider(script string) api.IntProvider {
 	exec := e.StringProvider(script)
 
@@ -46,6 +60,7 @@ func (e *Exec) IntProvider(script string) api.IntProvider {
 	}
 }
 
+// FloatProvider parses float from exec result
 func (e *Exec) FloatProvider(script string) api.FloatProvider {
 	exec := e.StringProvider(script)
 
@@ -60,6 +75,7 @@ func (e *Exec) FloatProvider(script string) api.FloatProvider {
 	}
 }
 
+// BoolProvider parses bool from exec result. "on", "true" and 1 are considerd truish.
 func (e *Exec) BoolProvider(script string) api.BoolProvider {
 	exec := e.StringProvider(script)
 
@@ -74,6 +90,7 @@ func (e *Exec) BoolProvider(script string) api.BoolProvider {
 	}
 }
 
+// IntSetter invokes script with parameter replaced by int value
 func (e *Exec) IntSetter(param, script string) api.IntSetter {
 	// return func to access cached value
 	return func(ctx context.Context, i int64) error {
@@ -93,6 +110,7 @@ func (e *Exec) IntSetter(param, script string) api.IntSetter {
 	}
 }
 
+// BoolSetter invokes script with parameter replaced by bool value
 func (e *Exec) BoolSetter(param, script string) api.BoolSetter {
 	// return func to access cached value
 	return func(ctx context.Context, b bool) error {

@@ -1,17 +1,18 @@
 package cmd
 
+import "github.com/andig/evcc/api"
+
 type Config struct {
 	Mqtt       MqttConfig
 	Meters     []MeterConfig
 	Chargers   []ChargerConfig
-	Loadpoints []LoadpointConfig
+	LoadPoints []LoadPointConfig
 }
 
 type MqttConfig struct {
 	Broker   string
 	User     string
 	Password string
-	Qos      int
 }
 
 type MeterConfig struct {
@@ -21,15 +22,36 @@ type MeterConfig struct {
 	Energy string
 }
 
+type ProviderConfig struct {
+	Type  string
+	Topic string
+	Cmd   string
+}
+
 type ChargerConfig struct {
 	Name string
 	Type string
-	URI  string
+
+	// wallbe charger
+	URI string
+
+	// composite charger
+	Status        *ProviderConfig // Charger
+	ActualCurrent *ProviderConfig // Charger
+	MaxCurrent    *ProviderConfig // ChargeController
+	Enable        *ProviderConfig // Charger
+	Enabled       *ProviderConfig // Charger
 }
-type LoadpointConfig struct {
+
+type LoadPointConfig struct {
 	Name        string
-	Charger     string
-	GridMeter   string
-	PVMeter     string
-	ChargeMeter string
+	Charger     string // api.Charger
+	GridMeter   string // api.Meter
+	PVMeter     string // api.Meter
+	ChargeMeter string // api.Meter
+	Mode        api.ChargeMode
+	MinCurrent  int64
+	MaxCurrent  int64
+	Voltage     float64
+	Phases      float64
 }

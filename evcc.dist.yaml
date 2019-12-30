@@ -1,6 +1,5 @@
 mqtt:
   server: nas.fritz.box:1883
-  qos: 1
 
 meters:
 - name: netz

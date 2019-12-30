@@ -66,8 +66,8 @@ func (m *MqttClient) Listen(topic string, callback func(string)) {
 	m.WaitForToken(token)
 }
 
-// FloatValue parses float64 from MQTT topic and returns cached value
-func (m *MqttClient) FloatValue(topic string) api.FloatProvider {
+// FloatProvider parses float64 from MQTT topic and returns cached value
+func (m *MqttClient) FloatProvider(topic string) api.FloatProvider {
 	var mux sync.Mutex // guards following values
 	var ts time.Time
 	var val float64
@@ -101,8 +101,8 @@ func (m *MqttClient) FloatValue(topic string) api.FloatProvider {
 	}
 }
 
-// IntValue parses int64 from MQTT topic and returns cached value
-func (m *MqttClient) IntValue(topic string) api.IntProvider {
+// IntProvider parses int64 from MQTT topic and returns cached value
+func (m *MqttClient) IntProvider(topic string) api.IntProvider {
 	var mux sync.Mutex // guards following values
 	var ts time.Time
 	var val int64

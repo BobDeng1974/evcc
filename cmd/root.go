@@ -23,6 +23,7 @@ const (
 
 var (
 	cfgFile    string
+	mq         *provider.MqttClient
 	loadPoints []*core.LoadPoint
 	clientPush = make(chan server.SocketValue)
 )
@@ -33,6 +34,11 @@ var rootCmd = &cobra.Command{
 	Short: "EV Charge Controller",
 	// Long:  "Easily read and distribute data from ModBus meters and grid inverters",
 	Run: run,
+}
+
+type CompositeCharger struct {
+	api.Charger
+	api.ChargeController
 }
 
 func init() {
@@ -105,11 +111,6 @@ func Execute() {
 	}
 }
 
-type CompositeCharger struct {
-	api.Charger
-	api.ChargeController
-}
-
 func updateLoadPoints() {
 	for _, lp := range loadPoints {
 		go lp.Update()
@@ -164,6 +165,112 @@ func clientID() string {
 	return fmt.Sprintf("ulm-%d", pid)
 }
 
+func configureLoadPoint(lp *core.LoadPoint, lpc LoadPointConfig) {
+	if lpc.Mode != "" {
+		lp.Mode = api.ChargeMode(lpc.Mode)
+	}
+	if lpc.MinCurrent > 0 {
+		lp.MinCurrent = lpc.MinCurrent
+	}
+	if lpc.MaxCurrent > 0 {
+		lp.MaxCurrent = lpc.MaxCurrent
+	}
+	if lpc.Voltage > 0 {
+		lp.Voltage = lpc.Voltage
+	}
+	if lpc.Phases > 0 {
+		lp.Phases = lpc.Phases
+	}
+}
+
+func loadConfig(conf Config) {
+	if viper.Get("mqtt") != nil {
+		mq = provider.NewMqttClient(conf.Mqtt.Broker, conf.Mqtt.User, conf.Mqtt.Password, clientID(), true, 1)
+	}
+
+	meters := make(map[string]api.Meter)
+	for _, mc := range conf.Meters {
+		var p api.FloatProvider
+
+		switch mc.Type {
+		case "mqtt":
+			p = mq.FloatProvider(mc.Power)
+		case "exec":
+			exec := &provider.Exec{}
+			p = exec.FloatProvider(mc.Power)
+		default:
+			log.Fatalf("invalid meter type %s", mc.Type)
+		}
+
+		m := core.NewMeter(p)
+		meters[mc.Name] = m
+	}
+
+	chargers := make(map[string]api.Charger)
+	for _, cc := range conf.Chargers {
+		var c api.Charger
+
+		switch cc.Type {
+		case "wallbe":
+			c = provider.NewWallbe(cc.URI)
+		case "configurable":
+			status := stringProvider(cc.Status)
+			actualCurrent := intProvider(cc.ActualCurrent)
+			enable := boolSetter("enable", cc.Enable)
+			enabled := boolProvider(cc.Enabled)
+			c = core.NewCharger(
+				status,
+				actualCurrent,
+				enabled,
+				enable,
+			)
+
+			// if chargecontroller specified build composite charger
+			if cc.MaxCurrent != nil {
+				c = &CompositeCharger{
+					c,
+					core.NewChargeController(
+						intSetter("current", cc.MaxCurrent),
+					),
+				}
+			}
+		default:
+			log.Fatalf("invalid charger type %s", cc.Type)
+		}
+
+		chargers[cc.Name] = c
+	}
+
+	for _, lpc := range conf.LoadPoints {
+		lp := core.NewLoadPoint(
+			lpc.Name,
+			chargers[lpc.Charger],
+		)
+
+		// assign meters
+		for _, m := range []struct {
+			key   string
+			meter *api.Meter
+		}{
+			{lpc.GridMeter, &lp.GridMeter},
+			{lpc.ChargeMeter, &lp.ChargeMeter},
+			{lpc.PVMeter, &lp.PVMeter},
+		} {
+			if m.key != "" {
+				if impl, ok := meters[m.key]; ok {
+					*m.meter = impl
+				} else {
+					log.Fatalf("invalid meter %s", m.key)
+				}
+			}
+		}
+
+		// assign remaing config
+		configureLoadPoint(lp, lpc)
+		loadPoints = append(loadPoints, lp)
+	}
+}
+
 func run(cmd *cobra.Command, args []string) {
 	if true || logEnabled() {
 		logger := log.New(os.Stdout, "", log.LstdFlags)
@@ -175,44 +282,13 @@ func run(cmd *cobra.Command, args []string) {
 		if err := viper.UnmarshalExact(&conf); err != nil {
 			log.Fatalf("config: failed parsing config file %s: %v", cfgFile, err)
 		}
-		log.Println(conf)
+		loadConfig(conf)
+	} else {
+		log.Fatal("missing evcc config")
 	}
 
-	// mqtt provider
-	mq := provider.NewMqttClient("nas.fritz.box:1883", "", "", clientID(), true, 1)
-
-	// charger
-	exec := provider.Exec{}
-	charger := &CompositeCharger{
-		core.NewCharger(
-			exec.StringProvider("/bin/bash -c 'echo C'"),
-			exec.IntProvider("/bin/bash -c 'echo $((RANDOM % 32))'"),
-			exec.BoolProvider("/bin/bash -c 'echo true'"),
-			exec.BoolSetter("enable", "/bin/bash -c 'echo true'"),
-		),
-		core.NewChargeController(
-			exec.IntSetter("current", "/bin/bash -c 'echo $((RANDOM % 1000))'"),
-		),
-	}
-
-	// meters
-	gridMeter := core.NewMeter(mq.FloatValue("mbmd/sdm1-1/Power"))
-	pvMeter := core.NewMeter(mq.FloatValue("mbmd/sdm1-2/Power"))
-
-	// loadpoint
-	lp := core.NewLoadPoint("lp1", charger)
-	lp.Phases = 2      // Audi
-	lp.Voltage = 230   // V
-	lp.MinCurrent = 0  // A
-	lp.MaxCurrent = 16 // A
-	lp.GridMeter = gridMeter
-	lp.PVMeter = pvMeter
-	lp.ChargeMeter = pvMeter
-	loadPoints = append(loadPoints, lp)
-
-	if err := lp.ChargeMode(api.ModePV); err != nil {
-		log.Fatal(err)
-	}
+	lp := loadPoints[0]
+	log.Printf("%+v", lp)
 
 	// create webserver
 	hub := server.NewSocketHub()

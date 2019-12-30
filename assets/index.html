@@ -78,11 +78,11 @@
         <h4 class="my-0 font-weight-normal">Charger</h4>
       </div>
       <div class="card-body">
-        <h1 class="card-title pricing-card-title">
+        <h2 class="card-title pricing-card-title">
           {{ format(chargeCurrent) }} <small class="text-muted">A</small>
           <span class="text-muted">/</span>
           {{ format(chargePower) }} <small class="text-muted">{{ unit(chargePower) }}W</small>
-        </h1>
+        </h2>
         <p>Ladestrom/leistung</p>
         <!-- <button type="button" class="btn btn-lg btn-block btn-primary">Start</button> -->
       </div>
@@ -92,12 +92,12 @@
         <h4 class="my-0 font-weight-normal">SoC</h4>
       </div>
       <div class="card-body">
-        <h1 class="card-title pricing-card-title">
+        <h2 class="card-title pricing-card-title">
           {{ format(socCharge) }} <small class="text-muted">%</small>
           <span class="text-muted">/</span>
           {{ format(chargeEnergy) }} <small class="text-muted">kWh</small>
-        </h1>
-        <p>Ladezustand</p>
+        </h2>
+        <p>Ladezustand/energie</p>
         <!-- <button type="button" class="btn btn-lg btn-block btn-primary">Start</button> -->
       </div>
     </div>
@@ -106,8 +106,8 @@
         <h4 class="my-0 font-weight-normal">Hausanschluss</h4>
       </div>
       <div class="card-body">
-        <h1 class="card-title pricing-card-title">{{ format(gridPower) }} <small
-            class="text-muted">{{ unit(gridPower) }}W</small></h1>
+        <h2 class="card-title pricing-card-title">{{ format(gridPower) }} <small
+            class="text-muted">{{ unit(gridPower) }}W</small></h2>
         <p>{{ gridMode }}</p>
         <!-- <button type="button" class="btn btn-lg btn-block btn-outline-primary">Start</button> -->
       </div>
@@ -117,8 +117,8 @@
         <h4 class="my-0 font-weight-normal">PV</h4>
       </div>
       <div class="card-body">
-        <h1 class="card-title pricing-card-title">{{ format(pvPower) }} <small
-            class="text-muted">{{ unit(pvPower) }}W</small></h1>
+        <h2 class="card-title pricing-card-title">{{ format(pvPower) }} <small
+            class="text-muted">{{ unit(pvPower) }}W</small></h2>
         <p>Erzeugung</p>
         <!-- <button type="button" class="btn btn-lg btn-block btn-primary">Start</button> -->
       </div>
