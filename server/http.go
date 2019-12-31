@@ -78,13 +78,10 @@ func IndexHandler(liveAssets bool) http.HandlerFunc {
 	})
 }
 
-// JsonHandler is a middleware that decorates responses with JSON and CORS headers
-func JsonHandler(h http.Handler) http.Handler {
+// JSONHandler is a middleware that decorates responses with JSON and CORS headers
+func JSONHandler(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "*")
 		h.ServeHTTP(w, r)
 	})
 }
@@ -171,7 +168,7 @@ func NewHttpd(url string, lp *core.LoadPoint, hub *SocketHub) *http.Server {
 
 	// api
 	api := router.PathPrefix("/api").Subrouter()
-	api.Use(JsonHandler)
+	api.Use(JSONHandler)
 	for _, r := range routes {
 		api.
 			Methods(r.Methods...).
@@ -182,13 +179,21 @@ func NewHttpd(url string, lp *core.LoadPoint, hub *SocketHub) *http.Server {
 	// websocket
 	router.HandleFunc("/ws", SocketHandler(hub))
 
+	// add handlers
+	handler := handlers.CompressHandler(router)
+	handler = handlers.CORS(
+		handlers.AllowedHeaders([]string{
+			"Accept", "Accept-Language", "Content-Language", "Content-Type", "Origin",
+		}),
+	)(handler)
+
 	srv := &http.Server{
 		Addr:         url,
-		Handler:      handlers.CompressHandler(router),
+		Handler:      handler,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,
-		// ErrorLog: log.New(DebugLogger{}, "", 0),
+		// ErrorLog:     log.New(DebugLogger{}, "", 0),
 	}
 	srv.SetKeepAlivesEnabled(true)
 

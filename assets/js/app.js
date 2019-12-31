@@ -55,12 +55,13 @@ const mode = new Vue({
 const live = new Vue({
   el: '#live',
   data: {
-    gridPower: 0,
-    pvPower: 0,
-    chargeCurrent: 0,
-    chargePower: 0,
-    chargeEnergy: 0,
-    socCharge: 0,
+    gridPower: null,
+    pvPower: null,
+    chargeCurrent: null,
+    chargePower: null,
+    chargeDuration: null,
+    chargedEnergy: null,
+    socCharge: null,
   },
   computed: {
     gridMode: function () {
@@ -99,7 +100,6 @@ const live = new Vue({
       };
       ws.onmessage = function (evt) {
         var msg = JSON.parse(evt.data);
-        console.log(msg)
         self.update(msg);
       };
     },

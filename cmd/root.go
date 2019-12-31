@@ -101,8 +101,12 @@ func Execute() {
 
 func updateLoadPoints() {
 	for _, lp := range loadPoints {
-		go lp.Update()
+		lp.Update()
 	}
+}
+
+func formatDuration(d time.Duration) string {
+	return fmt.Sprintf("%02d:%02d:%02d", int64(d.Hours()), int64(d.Minutes())%60, int64(d.Seconds())%60)
 }
 
 func observeLoadPoint(lp *core.LoadPoint) {
@@ -111,6 +115,7 @@ func observeLoadPoint(lp *core.LoadPoint) {
 		"pv":     lp.PVMeter,
 		"charge": lp.ChargeMeter,
 	}
+
 	for name, meter := range meters {
 		if f, err := meter.CurrentPower(); err == nil {
 			key := name + "Power"
@@ -120,15 +125,20 @@ func observeLoadPoint(lp *core.LoadPoint) {
 		}
 	}
 
-	if lp.ChargeMeter != nil {
-		if f, err := lp.ChargedEnergy(); err == nil {
-			clientPush <- server.SocketValue{Key: "chargeEnergy", Val: f}
-		} else {
-			log.Printf("%s update charge meter failed: %v", lp.Name, err)
-		}
+	clientPush <- server.SocketValue{Key: "chargeDuration", Val: formatDuration(lp.ChargeDuration())}
+	clientPush <- server.SocketValue{Key: "mode", Val: string(lp.CurrentChargeMode())}
+
+	if f, err := lp.ChargedEnergy(); err == nil {
+		clientPush <- server.SocketValue{Key: "chargedEnergy", Val: f}
+	} else {
+		log.Printf("%s update charge meter failed: %v", lp.Name, err)
 	}
 
-	clientPush <- server.SocketValue{Key: "mode", Val: string(lp.CurrentChargeMode())}
+	if f, err := lp.Charger.ActualCurrent(); err == nil {
+		clientPush <- server.SocketValue{Key: "chargeCurrent", Val: f}
+	} else {
+		log.Printf("%s update charger current failed: %v", lp.Name, err)
+	}
 }
 
 func run(cmd *cobra.Command, args []string) {
@@ -159,7 +169,7 @@ func run(cmd *cobra.Command, args []string) {
 
 	// push updates
 	go func() {
-		for range time.Tick(2 * time.Second) {
+		for range time.Tick(1 * time.Second) {
 			observeLoadPoints()
 		}
 	}()
